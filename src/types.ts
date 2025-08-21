@@ -50,4 +50,6 @@ export interface CLIArgs {
   help?: boolean;
   /** Show version */
   version?: boolean;
+  /** Enable debug mode */
+  debug?: boolean;
 }

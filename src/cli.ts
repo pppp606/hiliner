@@ -64,6 +64,7 @@ function parseCliArgs(): CLIArgs {
         'line-numbers': { type: 'boolean', short: 'n' },
         relative: { type: 'boolean', short: 'r' },
         context: { type: 'string', short: 'c' },
+        debug: { type: 'boolean' },
       },
     });
 
@@ -79,9 +80,11 @@ function parseCliArgs(): CLIArgs {
       lineNumbers: values['line-numbers'],
       relative: values.relative,
       context: values.context ? parseInt(values.context, 10) : undefined,
+      debug: values.debug,
     };
   } catch (error) {
-    console.error('Error parsing arguments:', error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error parsing arguments:', errorMessage);
     process.exit(1);
   }
 }
@@ -91,6 +94,13 @@ function parseCliArgs(): CLIArgs {
  */
 export async function main(): Promise<void> {
   const args = parseCliArgs();
+
+  // Enable debug mode if --debug flag is passed
+  if (args.debug) {
+    process.env.DEBUG_MODE = 'true';
+    console.debug('Debug mode enabled');
+    console.debug(`Parsed arguments: ${JSON.stringify(args, null, 2)}`);
+  }
 
   // Show help
   if (args.help) {
@@ -140,15 +150,12 @@ export async function main(): Promise<void> {
       console.log(result);
     }
   } catch (error) {
-    console.error('Error:', error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error:', errorMessage);
     process.exit(1);
   }
 }
 
-// Run if called directly
-if (require.main === module) {
-  main().catch((error) => {
-    console.error('Unexpected error:', error);
-    process.exit(1);
-  });
-}
+// Run if called directly - simplified for testing
+// Note: This check is removed for easier testing. 
+// The binary entry point will handle direct execution.
