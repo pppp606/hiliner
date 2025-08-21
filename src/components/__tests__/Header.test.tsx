@@ -17,7 +17,7 @@ describe('Header Component', () => {
       const output = lastFrame();
       
       expect(output).toBeDefined();
-      expect(output.length).toBeGreaterThan(0);
+      expect(output?.length).toBeGreaterThan(0);
     });
 
     it('should be visually distinct from other components', () => {
@@ -337,7 +337,7 @@ describe('Header Component', () => {
       
       // Should be clearly formatted and readable
       expect(output).toBeDefined();
-      expect(output.trim().length).toBeGreaterThan(0);
+      expect(output?.trim().length).toBeGreaterThan(0);
     });
 
     it('should be easily distinguishable from file content', () => {

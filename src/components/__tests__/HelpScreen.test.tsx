@@ -17,15 +17,15 @@ describe('HelpScreen Component', () => {
       const output = lastFrame();
       
       // Should render empty or minimal output when hidden
-      expect(output.trim()).toBe('');
+      expect(output?.trim()).toBe('');
     });
 
     it('should toggle visibility based on isVisible prop', () => {
       const { rerender, lastFrame } = render(<HelpScreen isVisible={false} />);
-      expect(lastFrame().trim()).toBe('');
+      expect(lastFrame()?.trim()).toBe('');
       
       rerender(<HelpScreen isVisible={true} />);
-      expect(lastFrame().trim().length).toBeGreaterThan(0);
+      expect(lastFrame()?.trim().length).toBeGreaterThan(0);
     });
 
     it('should be visually distinct and overlay-like', () => {
@@ -195,7 +195,7 @@ describe('HelpScreen Component', () => {
       const output = lastFrame();
       
       // Should have clear separation between sections
-      expect(output.split('\n').length).toBeGreaterThan(5);
+      expect(output?.split('\n')?.length || 0).toBeGreaterThan(5);
     });
 
     it('should align shortcuts and descriptions properly', () => {
@@ -216,7 +216,7 @@ describe('HelpScreen Component', () => {
       );
       const output = lastFrame();
       
-      const lines = output.split('\n');
+      const lines = output?.split('\n') || [];
       expect(lines.length).toBeLessThanOrEqual(15);
       lines.forEach((line: string) => {
         expect(line.length).toBeLessThanOrEqual(60);
@@ -351,7 +351,7 @@ describe('HelpScreen Component', () => {
       
       // Should still be usable
       expect(output).toBeDefined();
-      expect(output.trim().length).toBeGreaterThan(0);
+      expect(output?.trim().length).toBeGreaterThan(0);
     });
 
     it('should scroll content if it exceeds height', () => {
@@ -394,7 +394,7 @@ describe('HelpScreen Component', () => {
       const output = lastFrame();
       
       // Navigation shortcuts should be grouped
-      const lines = output.split('\n');
+      const lines = output?.split('\n') || [];
       const upLine = lines.findIndex((line: string) => line.includes('↑') || line.includes('Up'));
       const downLine = lines.findIndex((line: string) => line.includes('↓') || line.includes('Down'));
       

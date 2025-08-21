@@ -289,7 +289,7 @@ describe('FileContent Component', () => {
       const output = lastFrame();
       
       // Should not contain all 1000 lines in output
-      const outputLines = output.split('\n');
+      const outputLines = output?.split('\n') || [];
       expect(outputLines.length).toBeLessThan(50); // Much less than 1000
     });
 
@@ -340,7 +340,7 @@ describe('FileContent Component', () => {
       const output = lastFrame();
       
       // Lines should be clearly separated
-      expect(output.split('\n').length).toBeGreaterThan(1);
+      expect(output?.split('\n')?.length || 0).toBeGreaterThan(1);
     });
   });
 

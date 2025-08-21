@@ -41,10 +41,9 @@ Interactive Mode (default):
   When only a file is provided, hiliner opens an interactive terminal viewer
   
   Keyboard shortcuts:
-    ↑/↓ or j/k        Scroll line by line
-    Page Up/Down      Scroll by page
-    Home/End or g/G   Go to start/end of file
-    ? or h            Toggle help
+    ↑/↓               Scroll line by line
+    Space/b           Page down/up
+    g/G               Go to start/end of file
     q or Ctrl+C       Quit
 
 Static Mode Options:
@@ -151,16 +150,22 @@ export async function main(): Promise<void> {
   if (isInteractiveMode) {
     // Launch interactive mode with Ink
     try {
+      // Clear terminal before starting
+      process.stdout.write('\x1Bc'); // Clear terminal
+      process.stdout.write('\x1B[?1049h'); // Enter alternate screen buffer
+      
       const { clear } = render(React.createElement(App, { filePath: resolve(args.file) }));
       
       // Handle graceful exit
       process.on('SIGINT', () => {
         clear();
+        process.stdout.write('\x1B[?1049l'); // Exit alternate screen buffer
         process.exit(0);
       });
       
       process.on('SIGTERM', () => {
         clear();
+        process.stdout.write('\x1B[?1049l'); // Exit alternate screen buffer
         process.exit(0);
       });
     } catch (error) {

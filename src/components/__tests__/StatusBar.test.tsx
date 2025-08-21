@@ -17,7 +17,7 @@ describe('StatusBar Component', () => {
       const output = lastFrame();
       
       expect(output).toBeDefined();
-      expect(output.length).toBeGreaterThan(0);
+      expect(output?.length).toBeGreaterThan(0);
     });
 
     it('should be visually distinct and positioned at bottom', () => {
@@ -329,7 +329,7 @@ describe('StatusBar Component', () => {
       const output = lastFrame();
       
       // Should still display something useful
-      expect(output.trim().length).toBeGreaterThan(0);
+      expect(output?.trim().length).toBeGreaterThan(0);
     });
   });
 

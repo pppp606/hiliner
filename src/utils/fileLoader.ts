@@ -128,7 +128,7 @@ function normalizeLineEndings(content: string): string[] {
   const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   
   // Split by newlines
-  const lines = normalized.split('\n');
+  const lines = normalized?.split('\n') || [];
   
   // Handle empty files - they should have one empty line
   if (lines.length === 1 && lines[0] === '') {
@@ -243,7 +243,7 @@ export async function loadFileContent(
 
     // Process content based on options
     const lines = finalOptions.preserveLineEndings 
-      ? content.split('\n')
+      ? content?.split('\n') || []
       : normalizeLineEndings(content);
 
     // Build metadata

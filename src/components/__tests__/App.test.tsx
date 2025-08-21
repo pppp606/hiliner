@@ -14,25 +14,25 @@ describe('App Component', () => {
 
     it('should display loading state initially when no file provided', () => {
       const { lastFrame } = render(<App />);
-      expect(lastFrame()).toContain('No file provided');
+      expect(lastFrame()).toContain('No file provided'));
     });
 
     it('should accept file path as prop and attempt to load it', () => {
       const { lastFrame } = render(<App filePath="/test/file.txt" />);
-      expect(lastFrame()).toContain('Loading');
+      expect(lastFrame()).toContain('Loading'));
     });
   });
 
   describe('File loading states', () => {
     it('should show loading indicator while file is being processed', async () => {
       const { lastFrame } = render(<App filePath="/test/large-file.txt" />);
-      expect(lastFrame()).toContain('Loading');
+      expect(lastFrame()).toContain('Loading'));
     });
 
     it('should display error message when file cannot be loaded', async () => {
       const { lastFrame } = render(<App filePath="/nonexistent/file.txt" />);
       // Should eventually show error state
-      expect(lastFrame()).toMatch(/Error|not found|cannot be loaded/i);
+      expect(lastFrame()).toMatch(/Error|not found|cannot be loaded/i));
     });
 
     it('should render FileViewer component when file loads successfully', async () => {
@@ -40,7 +40,7 @@ describe('App Component', () => {
       // Mock successful file loading
       const { lastFrame } = render(<App filePath="/test/valid-file.txt" />);
       // Should render the file viewer interface
-      expect(lastFrame()).toContain('line 1');
+      expect(lastFrame()).toContain('line 1'));
     });
   });
 
@@ -52,7 +52,7 @@ describe('App Component', () => {
       stdin.write('\u001B[B');
       
       // Should update scroll position (exact implementation TBD)
-      expect(lastFrame()).toBeDefined();
+      expect(lastFrame()).toBeDefined());
     });
 
     it('should manage help screen visibility state', () => {
@@ -62,7 +62,7 @@ describe('App Component', () => {
       stdin.write('?');
       
       // Should show help screen
-      expect(lastFrame()).toContain('Help');
+      expect(lastFrame()).toContain('Help'));
     });
 
     it('should handle exit command gracefully', () => {
@@ -72,7 +72,7 @@ describe('App Component', () => {
       stdin.write('q');
       
       // Should trigger exit process
-      expect(lastFrame()).toBeDefined();
+      expect(lastFrame()).toBeDefined());
     });
   });
 
@@ -134,23 +134,23 @@ describe('App Component', () => {
   describe('Error boundaries and edge cases', () => {
     it('should handle empty files gracefully', () => {
       const { lastFrame } = render(<App filePath="/test/empty-file.txt" />);
-      expect(lastFrame()).toContain('empty');
+      expect(lastFrame()).toContain('empty'));
     });
 
     it('should handle very large files', () => {
       const { lastFrame } = render(<App filePath="/test/massive-file.txt" />);
-      expect(lastFrame()).toBeDefined();
+      expect(lastFrame()).toBeDefined());
       // Should not crash with memory issues
     });
 
     it('should handle files with special characters', () => {
       const { lastFrame } = render(<App filePath="/test/unicode-file.txt" />);
-      expect(lastFrame()).toBeDefined();
+      expect(lastFrame()).toBeDefined());
     });
 
     it('should handle binary files appropriately', () => {
       const { lastFrame } = render(<App filePath="/test/binary-file.bin" />);
-      expect(lastFrame()).toMatch(/binary|cannot display/i);
+      expect(lastFrame()).toMatch(/binary|cannot display/i));
     });
   });
 
@@ -159,10 +159,10 @@ describe('App Component', () => {
       const { lastFrame, stdin } = render(<App filePath="/test/file.txt" />);
       
       stdin.write('?'); // Show help
-      expect(lastFrame()).toContain('Help');
+      expect(lastFrame()).toContain('Help'));
       
       stdin.write('\u001B'); // Escape to close help
-      expect(lastFrame()).not.toContain('Help');
+      expect(lastFrame()).not.toContain('Help'));
     });
 
     it('should handle rapid key presses without crashing', () => {
@@ -179,7 +179,7 @@ describe('App Component', () => {
     it('should maintain consistent UI layout across different terminal sizes', () => {
       // This will depend on the terminal dimensions handling
       const { lastFrame } = render(<App filePath="/test/file.txt" />);
-      expect(lastFrame()).toBeDefined();
+      expect(lastFrame()).toBeDefined());
     });
   });
 });

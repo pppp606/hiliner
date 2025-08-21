@@ -1,5 +1,49 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Box, Text } from 'ink';
+
+// Single component with minimal re-rendering
+const OptimizedFileDisplay = memo(({ 
+  lines,
+  startLineNumber,
+  highlightIndex,
+  lineNumberWidth,
+  showLineNumbers,
+  horizontalOffset,
+  maxWidth
+}: {
+  lines: string[];
+  startLineNumber: number;
+  highlightIndex: number | null;
+  lineNumberWidth: number;
+  showLineNumbers: boolean;
+  horizontalOffset: number;
+  maxWidth?: number;
+}) => {
+  // Build the entire display as a single string to minimize DOM updates
+  const displayContent = lines.map((line, index) => {
+    const actualLineNumber = startLineNumber + index;
+    const isCurrentLine = highlightIndex === index + 1;
+    
+    // Apply horizontal offset and max width
+    let displayLine = line || '';
+    if (horizontalOffset > 0) {
+      displayLine = displayLine.slice(horizontalOffset);
+    }
+    if (maxWidth && displayLine.length > maxWidth) {
+      displayLine = displayLine.slice(0, maxWidth - 3) + '...';
+    }
+    
+    if (showLineNumbers) {
+      const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth - 1, ' ');
+      const prefix = isCurrentLine ? '▶ ' : '  ';
+      return `${prefix}${lineNumberStr} ${displayLine}`;
+    } else {
+      return displayLine;
+    }
+  }).join('\n');
+  
+  return <Text>{displayContent}</Text>;
+});
 
 interface FileContentProps {
   lines: string[] | null;
@@ -8,6 +52,7 @@ interface FileContentProps {
   scrollOffset?: number;
   viewportHeight?: number;
   currentLine?: number;
+  highlightLine?: number;  // Line to highlight within the visible viewport
   highlightedLines?: number[];
   enableSyntaxHighlighting?: boolean;
   language?: string;
@@ -18,13 +63,14 @@ interface FileContentProps {
   onLineClick?: (lineNumber: number) => void;
 }
 
-export function FileContent({
+function FileContentComponent({
   lines,
   showLineNumbers = true,
   startLineNumber = 1,
   scrollOffset = 0,
   viewportHeight,
   currentLine,
+  highlightLine,
   highlightedLines = [],
   enableSyntaxHighlighting = false,
   language,
@@ -65,46 +111,20 @@ export function FileContent({
   const maxLineNumber = startLineNumber + visibleLines.length - 1;
   const lineNumberWidth = Math.max(3, maxLineNumber.toString().length + 1);
 
-  // Render each line
+  // Use the optimized single-component approach
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      {visibleLines.map((line, index) => {
-        const actualLineNumber = startLineNumber + effectiveScrollOffset + index;
-        const isCurrentLine = currentLine === actualLineNumber;
-        const isHighlighted = highlightedLines.includes(actualLineNumber);
-
-        // Apply horizontal offset
-        let displayLine = line || '';
-        if (horizontalOffset > 0) {
-          displayLine = displayLine.slice(horizontalOffset);
-        }
-
-        // Apply max width constraint
-        if (maxWidth && displayLine.length > maxWidth) {
-          displayLine = displayLine.slice(0, maxWidth - 3) + '...';
-        }
-
-        // Format line number
-        const lineNumberText = showLineNumbers 
-          ? actualLineNumber.toString().padStart(lineNumberWidth - 1, ' ') + ' '
-          : '';
-
-        return (
-          <Box key={`line-${actualLineNumber}`}>
-            {showLineNumbers && (
-              <Text color="dim">
-                {lineNumberText}
-              </Text>
-            )}
-            <Text 
-              backgroundColor={isCurrentLine ? 'blue' : undefined}
-              color={isHighlighted ? 'yellow' : undefined}
-            >
-              {displayLine}
-            </Text>
-          </Box>
-        );
-      })}
+    <Box flexGrow={1}>
+      <OptimizedFileDisplay 
+        lines={visibleLines}
+        startLineNumber={startLineNumber + effectiveScrollOffset}
+        highlightIndex={highlightLine || null}
+        lineNumberWidth={lineNumberWidth}
+        showLineNumbers={showLineNumbers}
+        horizontalOffset={horizontalOffset}
+        maxWidth={maxWidth}
+      />
     </Box>
   );
 }
+
+export const FileContent = memo(FileContentComponent);

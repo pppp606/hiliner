@@ -17,7 +17,7 @@ line 10`;
 
 const mockFileData = {
   content: mockFileContent,
-  lines: mockFileContent.split('\n'),
+  lines: mockFileContent?.split('\n') || [],
   totalLines: 10,
   filePath: '/test/file.txt'
 };
@@ -184,7 +184,7 @@ describe('FileViewer Component', () => {
       const formattedContent = '  indented line\n\ttab indented\n  another indent';
       const formattedData = {
         content: formattedContent,
-        lines: formattedContent.split('\n'),
+        lines: formattedContent?.split('\n') || [],
         totalLines: 3,
         filePath: '/test/formatted.txt'
       };
@@ -201,7 +201,7 @@ describe('FileViewer Component', () => {
       const specialContent = 'line with émojis 🚀\nUnicode: café\nSymbols: ←→↑↓';
       const specialData = {
         content: specialContent,
-        lines: specialContent.split('\n'),
+        lines: specialContent?.split('\n') || [],
         totalLines: 3,
         filePath: '/test/special.txt'
       };
@@ -258,7 +258,7 @@ describe('FileViewer Component', () => {
       const largeContent = Array.from({ length: 10000 }, (_, i) => `line ${i + 1}`).join('\n');
       const largeData = {
         content: largeContent,
-        lines: largeContent.split('\n'),
+        lines: largeContent?.split('\n') || [],
         totalLines: 10000,
         filePath: '/test/huge.txt'
       };
@@ -281,7 +281,7 @@ describe('FileViewer Component', () => {
       const output = lastFrame();
       
       // Should render but not contain all 50000 lines in output
-      expect(output.split('\n').length).toBeLessThan(100);
+      expect(output?.split('\n')?.length || 0).toBeLessThan(100);
     });
   });
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Text, useInput, type Key } from 'ink';
+import React, { useState, memo } from 'react';
+import { Box, Text, useStdout } from 'ink';
 import { FileContent } from './FileContent.js';
 
 interface FileData {
@@ -12,21 +12,23 @@ interface FileData {
 interface FileViewerProps {
   fileData: FileData | null;
   scrollPosition?: number;
+  cursorPosition?: number;
   onScrollChange?: (position: number) => void;
   isFocused?: boolean;
 }
 
-export function FileViewer({ 
+function FileViewerComponent({ 
   fileData, 
   scrollPosition = 0,
+  cursorPosition = 0,
   onScrollChange,
   isFocused = true
 }: FileViewerProps): React.ReactElement {
-  const [localScrollPosition, setLocalScrollPosition] = useState(0);
   const [horizontalOffset, setHorizontalOffset] = useState(0);
+  const { stdout } = useStdout();
 
-  // Use provided scroll position or local state
-  const currentScrollPosition = scrollPosition ?? localScrollPosition;
+  // Calculate viewport settings - prevent flickering in iTerm2
+  const viewportHeight = Math.max(10, (stdout?.rows || 24) - 2); // -2 for status bar + iTerm2 compatibility
 
   // Handle null or malformed fileData
   if (!fileData || !fileData.lines) {
@@ -46,52 +48,7 @@ export function FileViewer({
     );
   }
 
-  // Handle keyboard input when focused
-  useInput((input: string, key: Key) => {
-    if (!isFocused) return;
-
-    const maxScroll = Math.max(0, fileData.lines.length - 1);
-    let newScrollPosition = currentScrollPosition;
-
-    // Vertical navigation
-    if (key.downArrow) {
-      newScrollPosition = Math.min(maxScroll, currentScrollPosition + 1);
-    } else if (key.upArrow) {
-      newScrollPosition = Math.max(0, currentScrollPosition - 1);
-    } else if (input === ' ') {
-      // Page down (space)
-      newScrollPosition = Math.min(maxScroll, currentScrollPosition + 10);
-    } else if (input === 'b') {
-      // Page up (b)
-      newScrollPosition = Math.max(0, currentScrollPosition - 10);
-    } else if (input === 'G') {
-      // Go to end
-      newScrollPosition = maxScroll;
-    } else if (input === 'g') {
-      // Go to start (gg in vim-like editors)
-      newScrollPosition = 0;
-    }
-
-    // Horizontal navigation
-    if (key.rightArrow) {
-      setHorizontalOffset(Math.max(0, horizontalOffset + 1));
-    } else if (key.leftArrow) {
-      setHorizontalOffset(Math.max(0, horizontalOffset - 1));
-    }
-
-    // Update scroll position if it changed
-    if (newScrollPosition !== currentScrollPosition) {
-      if (onScrollChange) {
-        onScrollChange(newScrollPosition);
-      } else {
-        setLocalScrollPosition(newScrollPosition);
-      }
-    }
-  }, { isActive: isFocused });
-
-  // Calculate viewport settings
-  const viewportHeight = 20; // Default viewport height
-  const startLine = Math.max(0, currentScrollPosition);
+  const startLine = Math.max(0, scrollPosition);
   const endLine = Math.min(fileData.lines.length, startLine + viewportHeight);
   
   // Get visible lines
@@ -105,9 +62,12 @@ export function FileViewer({
         startLineNumber={startLine + 1}
         scrollOffset={0}
         viewportHeight={viewportHeight}
-        currentLine={currentScrollPosition + 1}
+        currentLine={cursorPosition + 1}
+        highlightLine={cursorPosition - startLine + 1}
         horizontalOffset={horizontalOffset}
       />
     </Box>
   );
 }
+
+export const FileViewer = memo(FileViewerComponent);
