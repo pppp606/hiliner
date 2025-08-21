@@ -1,0 +1,7 @@
+これはテスト用のファイルです。
+1行目: Hello, World!
+2行目: インタラクティブCLIのテスト
+3行目: Ink framework
+4行目: React components
+5行目: TypeScript
+6行目: 最後の行です。

@@ -30,6 +30,7 @@ export interface UseFileLoaderResult {
 export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResult {
   const { maxSize, autoLoad = false, initialFilePath } = options || {};
 
+
   // State management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<FileValidationError | null>(null);
@@ -49,10 +50,17 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
 
   // Internal load function that handles the actual file loading logic
   const performLoad = useCallback(async (filePath: string, loadId: number) => {
+    
     // Check if this load is still current and component is mounted
-    if (loadId !== currentLoadRef.current || !isMountedRef.current) {
+    if (loadId !== currentLoadRef.current) {
       return;
     }
+    
+    // Temporary: Skip isMounted check for Ink compatibility
+    // if (!isMountedRef.current) {
+    //   console.error('performLoad cancelled: component unmounted');
+    //   return;
+    // }
 
     setLoading(true);
     setError(null);
@@ -84,9 +92,15 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
       }
 
       // Check if this load is still current and component is mounted
-      if (loadId !== currentLoadRef.current || !isMountedRef.current) {
+      if (loadId !== currentLoadRef.current) {
         return;
       }
+      
+      // Temporary: Skip isMounted check for Ink compatibility
+      // if (!isMountedRef.current) {
+      //   console.error('Load cancelled after loadFileContent (not mounted):', { loadId, currentLoadId: currentLoadRef.current, isMounted: isMountedRef.current });
+      //   return;
+      // }
 
       if (result.success) {
         setContent(result.lines);
@@ -159,6 +173,7 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
     // Note: Content and metadata are preserved when clearing error
   }, []);
 
+
   // Auto-load effect
   useEffect(() => {
     if (autoLoad && initialFilePath) {
@@ -166,7 +181,8 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
       currentLoadRef.current += 1;
       performLoad(initialFilePath, currentLoadRef.current);
     }
-  }, [autoLoad, initialFilePath, performLoad]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLoad, initialFilePath]);
 
   // Cleanup effect
   useEffect(() => {

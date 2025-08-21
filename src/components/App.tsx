@@ -15,7 +15,7 @@ export function App({ filePath }: AppProps): React.ReactElement {
   
   // File loading state
   const { loading, error, content, metadata, loadFile } = useFileLoader({
-    autoLoad: Boolean(filePath),
+    autoLoad: false, // Disable autoLoad to avoid conflicts
     initialFilePath: filePath,
   });
 
@@ -23,13 +23,17 @@ export function App({ filePath }: AppProps): React.ReactElement {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [columnPosition, setColumnPosition] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
+  
+  // Track if file has been loaded to prevent duplicate calls
+  const [hasLoadedFile, setHasLoadedFile] = useState(false);
 
   // Load file when filePath changes
   useEffect(() => {
-    if (filePath) {
+    if (filePath && !hasLoadedFile) {
+      setHasLoadedFile(true);
       loadFile(filePath);
     }
-  }, [filePath, loadFile]);
+  }, [filePath, loadFile, hasLoadedFile]);
 
   // Handle keyboard input
   useInput((input: string, key: Key) => {
@@ -121,7 +125,7 @@ export function App({ filePath }: AppProps): React.ReactElement {
       <Box flexDirection="column">
         <Header filePath={filePath} isLoading={true} />
         <Box flexGrow={1} justifyContent="center" alignItems="center">
-          Loading...
+          <Text>Loading...</Text>
         </Box>
         <StatusBar fileName={filePath.split('/').pop() || ''} isLoading={true} />
       </Box>

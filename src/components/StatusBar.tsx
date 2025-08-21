@@ -199,8 +199,8 @@ export function StatusBar({
         <Text>
           {leftSection}
           {statusInfo && leftSection && ' | '}
-          {statusInfo && <Text color={statusColor}>{statusInfo}</Text>}
         </Text>
+        {statusInfo && <Text color={statusColor}>{statusInfo}</Text>}
       </Box>
       
       {/* Center: Position info */}
