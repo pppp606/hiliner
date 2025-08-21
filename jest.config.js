@@ -6,11 +6,6 @@ export default {
   
   // ES modules support
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
   
   // Path configuration
   rootDir: '.',
@@ -51,7 +46,8 @@ export default {
   
   // Module name mapping (for path aliases if needed)
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   },
   
   // Module file extensions

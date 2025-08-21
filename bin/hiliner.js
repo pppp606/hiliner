@@ -5,20 +5,18 @@
  * This script bootstraps the TypeScript CLI module
  */
 
-const path = require('path');
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Try to load from dist first (production), then src (development)
 try {
-  require(path.join(__dirname, '..', 'dist', 'cli.js'));
+  await import(join(__dirname, '..', 'dist', 'cli.js'));
 } catch (error) {
-  // Fallback to ts-node for development
-  try {
-    require('ts-node/register');
-    require(path.join(__dirname, '..', 'src', 'cli.ts'));
-  } catch (tsError) {
-    console.error('Error: Could not load hiliner CLI');
-    console.error('Make sure to run "npm run build" or install ts-node for development');
-    console.error('Original error:', error.message);
-    process.exit(1);
-  }
+  console.error('Error: Could not load hiliner CLI');
+  console.error('Make sure to run "npm run build" first');
+  console.error('Original error:', error.message);
+  process.exit(1);
 }

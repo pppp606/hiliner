@@ -5,11 +5,15 @@
  */
 
 import { readFileSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
-import { highlightLines } from './highlighter';
-import { parseLineSpecs } from './parser';
-import { type CLIArgs } from './types';
+import { highlightLines } from './highlighter.js';
+import { parseLineSpecs } from './parser.js';
+import { type CLIArgs } from './types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PACKAGE_JSON = JSON.parse(
   readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8')
@@ -156,6 +160,10 @@ export async function main(): Promise<void> {
   }
 }
 
-// Run if called directly - simplified for testing
-// Note: This check is removed for easier testing. 
-// The binary entry point will handle direct execution.
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}

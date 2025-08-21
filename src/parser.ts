@@ -2,7 +2,7 @@
  * Line specification parsing functionality
  */
 
-import { type LineSpec } from './types';
+import { type LineSpec } from './types.js';
 
 /**
  * Parse line specification strings into LineSpec objects
@@ -12,7 +12,7 @@ import { type LineSpec } from './types';
 export function parseLineSpecs(specs: string[]): LineSpec[] {
   // TODO: Implement line specification parsing logic
   // This is a placeholder implementation
-  return specs.map((spec, index) => ({
+  return specs.map(spec => ({
     start: 1,
     end: 1,
     original: spec,

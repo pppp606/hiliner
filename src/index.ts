@@ -3,6 +3,6 @@
  * Main entry point for the library
  */
 
-export { highlightLines } from './highlighter';
-export { parseLineSpecs } from './parser';
-export { type LineSpec, type HighlightOptions } from './types';
+export { highlightLines } from './highlighter.js';
+export { parseLineSpecs } from './parser.js';
+export { type LineSpec, type HighlightOptions } from './types.js';

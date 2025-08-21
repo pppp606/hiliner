@@ -2,7 +2,7 @@
  * Line highlighting functionality
  */
 
-import { type LineSpec, type HighlightOptions } from './types';
+import { type LineSpec, type HighlightOptions } from './types.js';
 
 /**
  * Highlight specified lines in content
@@ -18,9 +18,8 @@ export function highlightLines(
 ): string {
   // TODO: Implement line highlighting logic
   // This is a placeholder implementation
-  const lines = content.split('\n');
   const marker = options.marker || '>';
-  
+
   // For now, just return the original content with a marker
   // This will be implemented properly in the next phase
   return `${marker} Highlighting functionality to be implemented\n${content}`;
