@@ -1,17 +1,15 @@
 /** @type {import('jest').Config} */
 export default {
   // Main configuration
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  
-  // ES modules support
+  preset: 'ts-jest/presets/default-esm',
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  testEnvironment: 'jsdom',
   
   // Path configuration
   rootDir: '.',
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.{ts,tsx,js,jsx}',
-    '<rootDir>/src/**/*.(test|spec).{ts,tsx,js,jsx}',
+    '<rootDir>/src/utils/**/__tests__/**/*.{ts,tsx,js,jsx}',
+    '<rootDir>/src/hooks/**/__tests__/**/*.{ts,tsx,js,jsx}',
     '<rootDir>/tests/**/*.{ts,tsx,js,jsx}'
   ],
   
@@ -40,7 +38,11 @@ export default {
   // TypeScript transformation
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      useESM: true
+      tsconfig: {
+        target: 'ES2020',
+        module: 'CommonJS',
+        lib: ['ES2020', 'DOM'],
+      }
     }]
   },
   
@@ -49,6 +51,11 @@ export default {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
+  
+  // Handle node_modules - transform ESM dependencies
+  transformIgnorePatterns: [
+    'node_modules/(?!(ink|ink-testing-library|chalk|ansi-escapes|cli-cursor)/)'
+  ],
   
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
