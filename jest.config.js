@@ -2,7 +2,7 @@
 export default {
   // Main configuration
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   
   // ES modules support
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
@@ -40,7 +40,12 @@ export default {
   // TypeScript transformation
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      useESM: true
+      useESM: true,
+      tsconfig: {
+        target: 'ES2022',
+        module: 'ESNext',
+        lib: ['ES2022'],
+      }
     }]
   },
   
