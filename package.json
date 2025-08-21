@@ -1,0 +1,59 @@
+{
+  "name": "hiliner",
+  "version": "0.1.0",
+  "description": "A CLI tool for text highlighting and custom command configuration",
+  "author": "Takuto",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "main": "./dist/index.js",
+  "bin": {
+    "hiliner": "./bin/hiliner.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "ink": "^4.4.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "ink-testing-library": "^3.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.2.4",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "cli",
+    "text",
+    "highlighting",
+    "terminal",
+    "command-line"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/hiliner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/hiliner/issues"
+  },
+  "homepage": "https://github.com/username/hiliner#readme"
+}
