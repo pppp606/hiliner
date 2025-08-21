@@ -98,6 +98,7 @@ describe('useFileLoader hook', () => {
         lineCount: 3,
         encoding: 'utf8',
         lastModified: expect.any(Date),
+        isBinary: false,
       });
       expect(result.current.error).toBeNull();
     });

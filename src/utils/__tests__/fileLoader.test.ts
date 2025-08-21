@@ -86,6 +86,7 @@ describe('fileLoader utilities', () => {
         lineCount: 4,
         encoding: 'utf8',
         lastModified: expect.any(Date),
+        isBinary: false,
       });
       expect(result.error).toBeNull();
     });

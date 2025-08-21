@@ -4,9 +4,6 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   
-  // ES modules support
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  
   // Path configuration
   rootDir: '.',
   testMatch: [
@@ -40,20 +37,21 @@ export default {
   // TypeScript transformation
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      useESM: true,
       tsconfig: {
-        target: 'ES2022',
-        module: 'ESNext',
-        lib: ['ES2022'],
+        target: 'ES2020',
+        module: 'CommonJS',
+        lib: ['ES2020', 'DOM'],
       }
     }]
   },
   
   // Module name mapping (for path aliases if needed)
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
+  
+  // Handle node_modules - transform all dependencies
+  transformIgnorePatterns: [],
   
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],

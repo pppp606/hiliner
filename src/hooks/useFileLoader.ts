@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { FileValidationError, FileMetadata, loadFileContent, FileLoadOptions, ErrorType } from '../utils/fileLoader';
+import { FileValidationError, FileMetadata, loadFileContent, FileLoadOptions, ErrorType } from '../utils/fileLoader.js';
 
 export interface UseFileLoaderOptions {
   maxSize?: number;

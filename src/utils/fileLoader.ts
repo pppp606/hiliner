@@ -19,6 +19,7 @@ export interface FileMetadata {
   lineCount: number;
   encoding: string;
   lastModified: Date;
+  isBinary: boolean;
 }
 
 export interface FileLoadOptions {
@@ -252,6 +253,7 @@ export async function loadFileContent(
       lineCount: lines.length,
       encoding: finalOptions.encoding,
       lastModified: new Date(stats.mtime),
+      isBinary: false, // We've already confirmed it's not binary at this point
     };
 
     return {
