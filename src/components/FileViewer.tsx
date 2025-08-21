@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { memo } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { FileContent } from './FileContent.js';
 
@@ -20,11 +20,8 @@ interface FileViewerProps {
 function FileViewerComponent({ 
   fileData, 
   scrollPosition = 0,
-  cursorPosition = 0,
-  onScrollChange,
-  isFocused = true
+  cursorPosition = 0
 }: FileViewerProps): React.ReactElement {
-  const [horizontalOffset, setHorizontalOffset] = useState(0);
   const { stdout } = useStdout();
 
   // Calculate viewport settings - prevent flickering in iTerm2
@@ -62,9 +59,8 @@ function FileViewerComponent({
         startLineNumber={startLine + 1}
         scrollOffset={0}
         viewportHeight={viewportHeight}
-        currentLine={cursorPosition + 1}
         highlightLine={cursorPosition - startLine + 1}
-        horizontalOffset={horizontalOffset}
+        horizontalOffset={0}
       />
     </Box>
   );

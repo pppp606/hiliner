@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { Box, Text } from 'ink';
 
 // Single component with minimal re-rendering
@@ -69,16 +69,9 @@ function FileContentComponent({
   startLineNumber = 1,
   scrollOffset = 0,
   viewportHeight,
-  currentLine,
   highlightLine,
-  highlightedLines = [],
-  enableSyntaxHighlighting = false,
-  language,
   maxWidth,
   horizontalOffset = 0,
-  theme,
-  fontSize,
-  onLineClick
 }: FileContentProps): React.ReactElement {
   
   // Handle null/undefined lines

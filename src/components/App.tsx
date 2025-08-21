@@ -13,11 +13,6 @@ export function App({ filePath }: AppProps): React.ReactElement {
   const { stdout } = useStdout();
   const terminalHeight = Math.max(10, (stdout?.rows || 24) - 1); // -1 to prevent flickering in iTerm2 when content exceeds screen height
   
-  // Exit with terminal cleanup on 'q' command
-  const exitApp = useCallback(() => {
-    process.stdout.write('\x1B[?1049l'); // Exit alternate screen buffer
-    exit();
-  }, [exit]);
   
   // File loading state
   const { loading, error, content, metadata, loadFile } = useFileLoader({

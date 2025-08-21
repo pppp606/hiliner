@@ -34,7 +34,6 @@ function StatusBarComponent({
   fileName,
   currentLine,
   totalLines,
-  currentColumn,
   isLoading = false,
   isError = false,
   errorMessage,
