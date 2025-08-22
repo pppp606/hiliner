@@ -10,6 +10,7 @@ export default {
   testMatch: [
     '<rootDir>/src/utils/**/__tests__/**/*.{ts,tsx,js,jsx}',
     '<rootDir>/src/hooks/**/__tests__/**/*.{ts,tsx,js,jsx}',
+    '<rootDir>/src/types/**/__tests__/**/*.{ts,tsx,js,jsx}',
     '<rootDir>/tests/**/*.{ts,tsx,js,jsx}'
   ],
   

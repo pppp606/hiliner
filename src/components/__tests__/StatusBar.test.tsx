@@ -519,6 +519,117 @@ describe('StatusBar Component', () => {
     });
   });
 
+  describe('Selection count display', () => {
+    it('should not display selection count when selectionCount is 0', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="test.txt"
+          selectionCount={0}
+          currentLine={10}
+          totalLines={100}
+        />
+      );
+      const output = lastFrame();
+      
+      expect(output).not.toMatch(/selected/);
+      expect(output).not.toMatch(/\d+\s+selected/);
+    });
+
+    it('should not display selection count when selectionCount is undefined', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="test.txt"
+          currentLine={10}
+          totalLines={100}
+        />
+      );
+      const output = lastFrame();
+      
+      expect(output).not.toMatch(/selected/);
+    });
+
+    it('should display selection count when selectionCount > 0', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="test.txt"
+          selectionCount={3}
+          currentLine={10}
+          totalLines={100}
+        />
+      );
+      const output = lastFrame();
+      
+      expect(output).toContain('3 selected');
+    });
+
+    it('should display correct format with selection count and position info', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="example.txt"
+          selectionCount={5}
+          currentLine={12}
+          totalLines={100}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should contain: filename | 5 selected | position info
+      expect(output).toContain('example.txt');
+      expect(output).toContain('5 selected');
+      expect(output).toContain('12%');
+      expect(output).toContain('12/100');
+    });
+
+    it('should handle large selection counts', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="large.txt"
+          selectionCount={999}
+          currentLine={500}
+          totalLines={1000}
+        />
+      );
+      const output = lastFrame();
+      
+      expect(output).toContain('999 selected');
+      expect(output).toContain('large.txt');
+    });
+
+    it('should combine selection count with binary file indicator', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="binary.exe"
+          selectionCount={2}
+          isBinary={true}
+          currentLine={1}
+          totalLines={10}
+        />
+      );
+      const output = lastFrame();
+      
+      expect(output).toContain('2 selected');
+      expect(output).toMatch(/\[Binary\]/);
+    });
+
+    it('should handle selection count with other status messages', () => {
+      const { lastFrame } = render(
+        <StatusBar 
+          fileName="test.txt"
+          selectionCount={7}
+          isBinary={true}
+          currentLine={25}
+          totalLines={100}
+        />
+      );
+      const output = lastFrame();
+      
+      // Both indicators should be present and properly separated
+      expect(output).toContain('7 selected');
+      expect(output).toMatch(/\[Binary\]/);
+      expect(output).toMatch(/\[Binary\]\s*\|\s*7 selected|\[Binary\].*7 selected|7 selected.*\[Binary\]/);
+    });
+  });
+
   describe('Integration with parent components', () => {
     it('should accept custom styling props', () => {
       const { lastFrame } = render(

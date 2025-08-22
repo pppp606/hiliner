@@ -1,34 +1,6 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
-
-interface StatusBarProps {
-  fileName?: string;
-  currentLine?: number;
-  totalLines?: number;
-  currentColumn?: number;
-  viewportStart?: number;
-  viewportEnd?: number;
-  encoding?: string;
-  isReadOnly?: boolean;
-  isBinary?: boolean;
-  mode?: string;
-  searchTerm?: string;
-  isLoading?: boolean;
-  isError?: boolean;
-  errorMessage?: string;
-  message?: string;
-  messageType?: 'success' | 'warning' | 'error';
-  temporaryMessage?: string;
-  temporaryMessageDuration?: number;
-  showNavigation?: boolean;
-  displayMode?: 'compact' | 'full';
-  maxWidth?: number;
-  theme?: string;
-  accentColor?: string;
-  fontSize?: string;
-  onShortcutPress?: (shortcut: string) => void;
-  syncWithParent?: boolean;
-}
+import type { StatusBarProps } from '../types.js';
 
 function StatusBarComponent({
   fileName,
@@ -38,6 +10,7 @@ function StatusBarComponent({
   isError = false,
   errorMessage,
   isBinary = false,
+  selectionCount = 0,
 }: StatusBarProps): React.ReactElement {
 
   // Build position information
@@ -59,6 +32,8 @@ function StatusBarComponent({
 
   // Build status message
   const buildStatus = () => {
+    const statusParts = [];
+    
     if (isLoading) {
       return 'Loading...';
     }
@@ -66,9 +41,15 @@ function StatusBarComponent({
       return `Error: ${errorMessage}`;
     }
     if (isBinary) {
-      return '[Binary]';
+      statusParts.push('[Binary]');
     }
-    return '';
+    
+    // Add selection count if lines are selected
+    if (selectionCount > 0) {
+      statusParts.push(`${selectionCount} selected`);
+    }
+    
+    return statusParts.join(' | ');
   };
 
   const positionInfo = buildPositionInfo();

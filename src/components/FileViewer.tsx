@@ -1,26 +1,13 @@
 import React, { memo } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { FileContent } from './FileContent.js';
-
-interface FileData {
-  content: string;
-  lines: string[];
-  totalLines: number;
-  filePath: string;
-}
-
-interface FileViewerProps {
-  fileData: FileData | null;
-  scrollPosition?: number;
-  cursorPosition?: number;
-  onScrollChange?: (position: number) => void;
-  isFocused?: boolean;
-}
+import type { FileData, FileViewerProps } from '../types.js';
 
 function FileViewerComponent({ 
   fileData, 
   scrollPosition = 0,
-  cursorPosition = 0
+  cursorPosition = 0,
+  selectedLines
 }: FileViewerProps): React.ReactElement {
   const { stdout } = useStdout();
 
@@ -61,6 +48,7 @@ function FileViewerComponent({
         viewportHeight={viewportHeight}
         highlightLine={cursorPosition - startLine + 1}
         horizontalOffset={0}
+        selectedLines={selectedLines}
       />
     </Box>
   );

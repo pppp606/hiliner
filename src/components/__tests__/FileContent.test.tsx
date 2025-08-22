@@ -391,6 +391,125 @@ describe('FileContent Component', () => {
     });
   });
 
+  describe('Selection indicators', () => {
+    it('should display asterisk (*) marker for selected lines', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines}
+          selectedLines={new Set([1, 3])}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should show asterisk marker for selected lines
+      expect(output).toContain(' * 1 ');
+      expect(output).toContain(' * 3 ');
+      // Non-selected lines should have regular spacing
+      expect(output).toContain('  2 ');
+    });
+
+    it('should display cursor indicator (▶) for highlighted line', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines}
+          highlightLine={2}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should show cursor indicator for highlighted line
+      expect(output).toContain('▶ 2 ');
+      // Other lines should have regular spacing
+      expect(output).toContain('  1 ');
+      expect(output).toContain('  3 ');
+    });
+
+    it('should display both cursor and selection markers (▶*) for highlighted selected line', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines}
+          selectedLines={new Set([2, 4])}
+          highlightLine={2}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should show combined indicator for highlighted selected line
+      expect(output).toContain('▶* 2 ');
+      // Selected but not highlighted should show asterisk only
+      expect(output).toContain(' * 4 ');
+      // Regular lines should have normal spacing
+      expect(output).toContain('  1 ');
+      expect(output).toContain('  3 ');
+    });
+
+    it('should handle empty selectedLines set', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines}
+          selectedLines={new Set()}
+          highlightLine={1}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should show cursor indicator only
+      expect(output).toContain('▶ 1 ');
+      expect(output).toContain('  2 ');
+    });
+
+    it('should handle undefined selectedLines', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines}
+          highlightLine={1}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should work without selectedLines prop
+      expect(output).toContain('▶ 1 ');
+      expect(output).toContain('  2 ');
+    });
+
+    it('should maintain selection indicators with scrolling', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines}
+          selectedLines={new Set([3, 5])}
+          highlightLine={1}
+          scrollOffset={2}
+          startLineNumber={3}
+        />
+      );
+      const output = lastFrame();
+      
+      // Line 3 should be selected (first visible line)
+      expect(output).toContain(' * 3 ');
+      // Line 5 should be selected
+      expect(output).toContain(' * 5 ');
+      // Highlighted line should be line 3 (relative position 1)
+      expect(output).toContain('▶* 3 ');
+    });
+
+    it('should handle selected lines outside visible viewport', () => {
+      const { lastFrame } = render(
+        <FileContent 
+          lines={mockLines.slice(0, 3)}
+          selectedLines={new Set([1, 10, 20])}
+          highlightLine={2}
+        />
+      );
+      const output = lastFrame();
+      
+      // Should only show markers for visible selected lines
+      expect(output).toContain(' * 1 ');
+      expect(output).toContain('▶ 2 ');
+      expect(output).toContain('  3 ');
+      // Lines 10, 20 are not in viewport, so no markers for them
+    });
+  });
+
   describe('Integration with parent components', () => {
     it('should accept custom styling props', () => {
       const { lastFrame } = render(

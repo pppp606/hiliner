@@ -1,16 +1,9 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
+import type { FileContentProps } from '../types.js';
+import { chalkColors } from '../utils/colors.js';
 
-// Single component with minimal re-rendering
-const OptimizedFileDisplay = memo(({ 
-  lines,
-  startLineNumber,
-  highlightIndex,
-  lineNumberWidth,
-  showLineNumbers,
-  horizontalOffset,
-  maxWidth
-}: {
+interface OptimizedFileDisplayProps {
   lines: string[];
   startLineNumber: number;
   highlightIndex: number | null;
@@ -18,7 +11,21 @@ const OptimizedFileDisplay = memo(({
   showLineNumbers: boolean;
   horizontalOffset: number;
   maxWidth?: number;
-}) => {
+  selectedLines?: Set<number>;
+}
+
+// Single component with minimal re-rendering
+// Maintains performance by rendering all content as a single text block
+const OptimizedFileDisplay = memo(({
+  lines,
+  startLineNumber,
+  highlightIndex,
+  lineNumberWidth,
+  showLineNumbers,
+  horizontalOffset,
+  maxWidth,
+  selectedLines
+}: OptimizedFileDisplayProps) => {
   // Build the entire display as a single string to minimize DOM updates
   const displayContent = lines.map((line, index) => {
     const actualLineNumber = startLineNumber + index;
@@ -34,9 +41,21 @@ const OptimizedFileDisplay = memo(({
     }
     
     if (showLineNumbers) {
-      const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth - 1, ' ');
-      const prefix = isCurrentLine ? '▶ ' : '  ';
-      return `${prefix}${lineNumberStr} ${displayLine}`;
+      const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth, ' ');
+      
+      // Determine visual styling based on selection and cursor state
+      const isSelected = selectedLines?.has(actualLineNumber) || false;
+      
+      // Cursor indicator
+      const cursorIndicator = isCurrentLine ? '▶' : ' ';
+      
+      // Apply color to line number if selected
+      const styledLineNumber = isSelected 
+        ? chalkColors.selectedLineNumber(lineNumberStr)
+        : lineNumberStr;
+      
+      // Build the complete line
+      return `${cursorIndicator}${styledLineNumber} ${displayLine}`;
     } else {
       return displayLine;
     }
@@ -45,23 +64,6 @@ const OptimizedFileDisplay = memo(({
   return <Text>{displayContent}</Text>;
 });
 
-interface FileContentProps {
-  lines: string[] | null;
-  showLineNumbers?: boolean;
-  startLineNumber?: number;
-  scrollOffset?: number;
-  viewportHeight?: number;
-  currentLine?: number;
-  highlightLine?: number;  // Line to highlight within the visible viewport
-  highlightedLines?: number[];
-  enableSyntaxHighlighting?: boolean;
-  language?: string;
-  maxWidth?: number;
-  horizontalOffset?: number;
-  theme?: string;
-  fontSize?: string;
-  onLineClick?: (lineNumber: number) => void;
-}
 
 function FileContentComponent({
   lines,
@@ -70,6 +72,7 @@ function FileContentComponent({
   scrollOffset = 0,
   viewportHeight,
   highlightLine,
+  selectedLines,
   maxWidth,
   horizontalOffset = 0,
 }: FileContentProps): React.ReactElement {
@@ -115,6 +118,7 @@ function FileContentComponent({
         showLineNumbers={showLineNumbers}
         horizontalOffset={horizontalOffset}
         maxWidth={maxWidth}
+        selectedLines={selectedLines}
       />
     </Box>
   );

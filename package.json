@@ -1,7 +1,7 @@
 {
   "name": "hiliner",
   "version": "0.1.0",
-  "description": "A CLI tool for text highlighting and custom command configuration",
+  "description": "An interactive CLI file viewer with multi-selection support and static line highlighting for terminal-based file browsing",
   "author": "Takuto",
   "license": "MIT",
   "type": "module",
@@ -23,6 +23,8 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@pppp606/uni-color-palette": "github:pppp606/uni-color-palette",
+    "chalk": "^5.6.0",
     "ink": "^4.4.1",
     "react": "^18.2.0"
   },
@@ -51,7 +53,13 @@
     "text",
     "highlighting",
     "terminal",
-    "command-line"
+    "command-line",
+    "file-viewer",
+    "interactive",
+    "multi-selection",
+    "navigation",
+    "ink",
+    "react"
   ],
   "repository": {
     "type": "git",
