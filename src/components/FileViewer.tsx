@@ -15,12 +15,14 @@ interface FileViewerProps {
   cursorPosition?: number;
   onScrollChange?: (position: number) => void;
   isFocused?: boolean;
+  selectedLines?: Set<number>;
 }
 
 function FileViewerComponent({ 
   fileData, 
   scrollPosition = 0,
-  cursorPosition = 0
+  cursorPosition = 0,
+  selectedLines
 }: FileViewerProps): React.ReactElement {
   const { stdout } = useStdout();
 
@@ -61,6 +63,7 @@ function FileViewerComponent({
         viewportHeight={viewportHeight}
         highlightLine={cursorPosition - startLine + 1}
         horizontalOffset={0}
+        selectedLines={selectedLines}
       />
     </Box>
   );

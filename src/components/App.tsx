@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useInput, useApp, useStdout, type Key } from 'ink';
 import { useFileLoader } from '../hooks/useFileLoader.js';
+import { useSelection } from '../hooks/useSelection.js';
 import { FileViewer } from './FileViewer.js';
 import { StatusBar } from './StatusBar.js';
 
@@ -19,6 +20,16 @@ export function App({ filePath }: AppProps): React.ReactElement {
     autoLoad: false, // Disable autoLoad to avoid conflicts
     initialFilePath: filePath,
   });
+
+  // Multi-selection state
+  const { 
+    selectedLines, 
+    selectionCount, 
+    toggleSelection, 
+    selectAll, 
+    clearSelection, 
+    isSelected 
+  } = useSelection();
 
   // UI state
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -39,6 +50,11 @@ export function App({ filePath }: AppProps): React.ReactElement {
     }
   }, [filePath, loadFile, hasLoadedFile]);
 
+  // Clear selections when file content changes
+  useEffect(() => {
+    clearSelection();
+  }, [content, clearSelection]);
+
   // Calculate viewport height for scrolling logic
   const viewportHeight = Math.max(10, terminalHeight - 1);  // -1 for status bar (height already reduced for iTerm2 compatibility)
   
@@ -48,6 +64,35 @@ export function App({ filePath }: AppProps): React.ReactElement {
     if (input === 'q' || key.ctrl && input === 'c') {
       exit();
       return;
+    }
+
+    // Multi-selection keyboard shortcuts (work when file is loaded)
+    if (content && content.length > 0) {
+      // Tab: Toggle selection of current line
+      if (key.tab) {
+        toggleSelection(cursorPosition + 1); // Convert 0-based to 1-based line number
+        return;
+      }
+
+      // 'a': Select all visible lines (within current viewport)
+      if (input === 'a') {
+        const startLine = Math.max(1, scrollPosition + 1); // 1-based line numbering
+        const endLine = Math.min(content.length, scrollPosition + viewportHeight);
+        selectAll(startLine, endLine);
+        return;
+      }
+
+      // 'd': Deselect all lines
+      if (input === 'd') {
+        clearSelection();
+        return;
+      }
+
+      // Escape: Clear all selections (same as 'd')
+      if (key.escape) {
+        clearSelection();
+        return;
+      }
     }
 
     // Navigation when file is loaded
@@ -205,11 +250,13 @@ export function App({ filePath }: AppProps): React.ReactElement {
         cursorPosition={cursorPosition}
         onScrollChange={handleScrollChange}
         isFocused={true}
+        selectedLines={selectedLines}
       />
       <StatusBar 
         fileName={filePath.split('/').pop() || ''}
         currentLine={cursorPosition + 1}
         totalLines={content.length}
+        selectionCount={selectionCount}
       />
     </Box>
   );

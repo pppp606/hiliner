@@ -28,6 +28,7 @@ interface StatusBarProps {
   fontSize?: string;
   onShortcutPress?: (shortcut: string) => void;
   syncWithParent?: boolean;
+  selectionCount?: number;
 }
 
 function StatusBarComponent({
@@ -38,6 +39,7 @@ function StatusBarComponent({
   isError = false,
   errorMessage,
   isBinary = false,
+  selectionCount = 0,
 }: StatusBarProps): React.ReactElement {
 
   // Build position information
@@ -59,6 +61,8 @@ function StatusBarComponent({
 
   // Build status message
   const buildStatus = () => {
+    const statusParts = [];
+    
     if (isLoading) {
       return 'Loading...';
     }
@@ -66,9 +70,15 @@ function StatusBarComponent({
       return `Error: ${errorMessage}`;
     }
     if (isBinary) {
-      return '[Binary]';
+      statusParts.push('[Binary]');
     }
-    return '';
+    
+    // Add selection count if lines are selected
+    if (selectionCount > 0) {
+      statusParts.push(`${selectionCount} selected`);
+    }
+    
+    return statusParts.join(' | ');
   };
 
   const positionInfo = buildPositionInfo();

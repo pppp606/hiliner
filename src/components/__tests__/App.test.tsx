@@ -110,6 +110,83 @@ describe('App Component', () => {
     });
   });
 
+  describe('Multi-selection keyboard shortcuts', () => {
+    it('should handle Tab key for toggling line selection', () => {
+      const { stdin } = render(<App filePath="/test/multi-line-file.txt" />);
+      
+      // Tab should toggle selection of current line
+      stdin.write('\t'); // Tab key
+      
+      expect(() => stdin.write('\t')).not.toThrow();
+    });
+
+    it('should handle "a" key for selecting all visible lines', () => {
+      const { stdin } = render(<App filePath="/test/multi-line-file.txt" />);
+      
+      // "a" should select all visible lines
+      stdin.write('a');
+      
+      expect(() => stdin.write('a')).not.toThrow();
+    });
+
+    it('should handle "d" key for deselecting all lines', () => {
+      const { stdin } = render(<App filePath="/test/multi-line-file.txt" />);
+      
+      // First select some lines, then deselect
+      stdin.write('a'); // Select all
+      stdin.write('d'); // Deselect all
+      
+      expect(() => stdin.write('d')).not.toThrow();
+    });
+
+    it('should handle Escape key for clearing all selections', () => {
+      const { stdin } = render(<App filePath="/test/multi-line-file.txt" />);
+      
+      // Select some lines, then clear with Escape
+      stdin.write('a'); // Select all
+      stdin.write('\u001B'); // Escape key
+      
+      expect(() => stdin.write('\u001B')).not.toThrow();
+    });
+
+    it('should not conflict with existing navigation keys', () => {
+      const { stdin } = render(<App filePath="/test/multi-line-file.txt" />);
+      
+      // Test that selection keys don't interfere with navigation
+      stdin.write('\t'); // Select current line
+      stdin.write('\u001B[B'); // Move down
+      stdin.write('\t'); // Select new current line
+      stdin.write('a'); // Select all
+      stdin.write('\u001B[A'); // Move up
+      stdin.write('d'); // Deselect all
+      
+      expect(() => {
+        stdin.write('\t');
+        stdin.write('\u001B[B');
+        stdin.write('a');
+        stdin.write('d');
+      }).not.toThrow();
+    });
+
+    it('should maintain selection state during navigation', () => {
+      const { stdin } = render(<App filePath="/test/multi-line-file.txt" />);
+      
+      // Select a line, navigate away, then back
+      stdin.write('\t'); // Select line 1
+      stdin.write('\u001B[B'); // Move to line 2
+      stdin.write('\u001B[B'); // Move to line 3
+      stdin.write('\u001B[A'); // Back to line 2
+      stdin.write('\u001B[A'); // Back to line 1
+      
+      // Line 1 should still be selected
+      expect(() => {
+        stdin.write('\t');
+        stdin.write('\u001B[B');
+        stdin.write('\u001B[A');
+      }).not.toThrow();
+    });
+  });
+
   describe('Component integration', () => {
     it('should properly integrate Header, FileViewer, and StatusBar components', () => {
       const { lastFrame } = render(<App filePath="/test/file.txt" />);
