@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
 import type { FileContentProps } from '../types.js';
+import { chalkColors } from '../utils/colors.js';
 
 interface OptimizedFileDisplayProps {
   lines: string[];
@@ -40,28 +41,21 @@ const OptimizedFileDisplay = memo(({
     }
     
     if (showLineNumbers) {
-      const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth - 1, ' ');
+      const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth, ' ');
       
-      // Determine prefix based on selection and cursor state
-      // Visual indicators:
-      // '▶ ' = cursor/highlighted line
-      // ' *' = selected line 
-      // '▶*' = highlighted AND selected line
-      // '  ' = normal line
+      // Determine visual styling based on selection and cursor state
       const isSelected = selectedLines?.has(actualLineNumber) || false;
-      let prefix: string;
       
-      if (isCurrentLine && isSelected) {
-        prefix = '▶*'; // Both cursor and selection
-      } else if (isCurrentLine) {
-        prefix = '▶ '; // Cursor only
-      } else if (isSelected) {
-        prefix = ' *'; // Selection only  
-      } else {
-        prefix = '  '; // Normal line
-      }
+      // Cursor indicator
+      const cursorIndicator = isCurrentLine ? '▶' : ' ';
       
-      return `${prefix}${lineNumberStr} ${displayLine}`;
+      // Apply color to line number if selected
+      const styledLineNumber = isSelected 
+        ? chalkColors.selectedLineNumber(lineNumberStr)
+        : lineNumberStr;
+      
+      // Build the complete line
+      return `${cursorIndicator}${styledLineNumber} ${displayLine}`;
     } else {
       return displayLine;
     }
