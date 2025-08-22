@@ -11,6 +11,9 @@ function StatusBarComponent({
   errorMessage,
   isBinary = false,
   selectionCount = 0,
+  detectedLanguage,
+  syntaxHighlightingEnabled = false,
+  encoding,
 }: StatusBarProps): React.ReactElement {
 
   // Build position information
@@ -42,6 +45,19 @@ function StatusBarComponent({
     }
     if (isBinary) {
       statusParts.push('[Binary]');
+    }
+    
+    // Add detected language
+    if (detectedLanguage && detectedLanguage !== 'text') {
+      const languageDisplay = syntaxHighlightingEnabled ? 
+        detectedLanguage.toUpperCase() : 
+        `${detectedLanguage.toUpperCase()} (no highlight)`;
+      statusParts.push(languageDisplay);
+    }
+    
+    // Add encoding if available and different from utf8
+    if (encoding && encoding !== 'utf8') {
+      statusParts.push(encoding.toUpperCase());
     }
     
     // Add selection count if lines are selected

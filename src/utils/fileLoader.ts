@@ -20,6 +20,8 @@ export interface FileMetadata {
   encoding: string;
   lastModified: Date;
   isBinary: boolean;
+  detectedLanguage?: string;
+  languageConfidence?: number;
 }
 
 export interface FileLoadOptions {

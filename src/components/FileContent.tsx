@@ -1,7 +1,8 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 import type { FileContentProps } from '../types.js';
 import { chalkColors } from '../utils/colors.js';
+import { useSyntaxHighlighting } from '../hooks/useSyntaxHighlighting.js';
 
 interface OptimizedFileDisplayProps {
   lines: string[];
@@ -12,6 +13,8 @@ interface OptimizedFileDisplayProps {
   horizontalOffset: number;
   maxWidth?: number;
   selectedLines?: Set<number>;
+  highlightedLines?: string[];
+  enableSyntaxHighlighting?: boolean;
 }
 
 // Single component with minimal re-rendering
@@ -24,15 +27,24 @@ const OptimizedFileDisplay = memo(({
   showLineNumbers,
   horizontalOffset,
   maxWidth,
-  selectedLines
+  selectedLines,
+  highlightedLines,
+  enableSyntaxHighlighting
 }: OptimizedFileDisplayProps) => {
   // Build the entire display as a single string to minimize DOM updates
   const displayContent = lines.map((line, index) => {
     const actualLineNumber = startLineNumber + index;
     const isCurrentLine = highlightIndex === index + 1;
     
+    // Use highlighted line if syntax highlighting is enabled and available
+    let displayLine = '';
+    if (enableSyntaxHighlighting && highlightedLines && highlightedLines[index]) {
+      displayLine = highlightedLines[index];
+    } else {
+      displayLine = line || '';
+    }
+    
     // Apply horizontal offset and max width
-    let displayLine = line || '';
     if (horizontalOffset > 0) {
       displayLine = displayLine.slice(horizontalOffset);
     }
@@ -75,7 +87,80 @@ function FileContentComponent({
   selectedLines,
   maxWidth,
   horizontalOffset = 0,
+  enableSyntaxHighlighting = true,
+  language,
+  theme = 'dark-plus',
 }: FileContentProps): React.ReactElement {
+  // Initialize syntax highlighting hook
+  const syntaxHighlighting = useSyntaxHighlighting({
+    enabled: enableSyntaxHighlighting,
+    theme: theme || 'dark-plus',
+  });
+
+  // State for highlighted lines
+  const [highlightedLines, setHighlightedLines] = useState<string[]>([]);
+  
+  // Effect to highlight visible lines when content changes
+  useEffect(() => {
+    if (!enableSyntaxHighlighting || !lines || !Array.isArray(lines) || lines.length === 0) {
+      setHighlightedLines([]);
+      return;
+    }
+
+    // Apply scroll offset and viewport height to get visible lines
+    const effectiveScrollOffset = Math.max(0, scrollOffset);
+    let visibleLines = lines.slice(effectiveScrollOffset);
+    
+    if (viewportHeight && viewportHeight > 0) {
+      visibleLines = visibleLines.slice(0, viewportHeight);
+    }
+
+    // Highlight visible lines
+    const highlightVisibleLines = async () => {
+      try {
+        const highlighted = await syntaxHighlighting.highlightLines(
+          visibleLines,
+          // Generate a pseudo file path for language detection if language is not provided
+          language ? `file.${getFileExtensionForLanguage(language)}` : undefined
+        );
+        setHighlightedLines(highlighted);
+      } catch (error) {
+        console.warn('Failed to highlight lines:', error);
+        setHighlightedLines([]);
+      }
+    };
+
+    highlightVisibleLines();
+  }, [lines, scrollOffset, viewportHeight, enableSyntaxHighlighting, language, theme, syntaxHighlighting]);
+
+  // Helper function to map language to file extension for detection
+  const getFileExtensionForLanguage = (lang: string): string => {
+    const extensionMap: Record<string, string> = {
+      javascript: 'js',
+      typescript: 'ts',
+      python: 'py',
+      java: 'java',
+      cpp: 'cpp',
+      c: 'c',
+      csharp: 'cs',
+      php: 'php',
+      ruby: 'rb',
+      go: 'go',
+      rust: 'rs',
+      swift: 'swift',
+      kotlin: 'kt',
+      scala: 'scala',
+      html: 'html',
+      css: 'css',
+      json: 'json',
+      xml: 'xml',
+      yaml: 'yml',
+      markdown: 'md',
+      bash: 'sh',
+      powershell: 'ps1',
+    };
+    return extensionMap[lang] || 'txt';
+  };
   
   // Handle null/undefined lines
   if (!lines || !Array.isArray(lines)) {
@@ -119,6 +204,8 @@ function FileContentComponent({
         horizontalOffset={horizontalOffset}
         maxWidth={maxWidth}
         selectedLines={selectedLines}
+        highlightedLines={highlightedLines}
+        enableSyntaxHighlighting={enableSyntaxHighlighting}
       />
     </Box>
   );
