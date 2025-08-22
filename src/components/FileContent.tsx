@@ -1,16 +1,7 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
 
-// Single component with minimal re-rendering
-const OptimizedFileDisplay = memo(({ 
-  lines,
-  startLineNumber,
-  highlightIndex,
-  lineNumberWidth,
-  showLineNumbers,
-  horizontalOffset,
-  maxWidth
-}: {
+interface OptimizedFileDisplayProps {
   lines: string[];
   startLineNumber: number;
   highlightIndex: number | null;
@@ -18,7 +9,21 @@ const OptimizedFileDisplay = memo(({
   showLineNumbers: boolean;
   horizontalOffset: number;
   maxWidth?: number;
-}) => {
+  selectedLines?: Set<number>;
+}
+
+// Single component with minimal re-rendering
+// Maintains performance by rendering all content as a single text block
+const OptimizedFileDisplay = memo(({
+  lines,
+  startLineNumber,
+  highlightIndex,
+  lineNumberWidth,
+  showLineNumbers,
+  horizontalOffset,
+  maxWidth,
+  selectedLines
+}: OptimizedFileDisplayProps) => {
   // Build the entire display as a single string to minimize DOM updates
   const displayContent = lines.map((line, index) => {
     const actualLineNumber = startLineNumber + index;
@@ -35,7 +40,26 @@ const OptimizedFileDisplay = memo(({
     
     if (showLineNumbers) {
       const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth - 1, ' ');
-      const prefix = isCurrentLine ? '▶ ' : '  ';
+      
+      // Determine prefix based on selection and cursor state
+      // Visual indicators:
+      // '▶ ' = cursor/highlighted line
+      // ' *' = selected line 
+      // '▶*' = highlighted AND selected line
+      // '  ' = normal line
+      const isSelected = selectedLines?.has(actualLineNumber) || false;
+      let prefix: string;
+      
+      if (isCurrentLine && isSelected) {
+        prefix = '▶*'; // Both cursor and selection
+      } else if (isCurrentLine) {
+        prefix = '▶ '; // Cursor only
+      } else if (isSelected) {
+        prefix = ' *'; // Selection only  
+      } else {
+        prefix = '  '; // Normal line
+      }
+      
       return `${prefix}${lineNumberStr} ${displayLine}`;
     } else {
       return displayLine;
@@ -54,6 +78,7 @@ interface FileContentProps {
   currentLine?: number;
   highlightLine?: number;  // Line to highlight within the visible viewport
   highlightedLines?: number[];
+  selectedLines?: Set<number>;  // Set of selected line numbers for multi-selection
   enableSyntaxHighlighting?: boolean;
   language?: string;
   maxWidth?: number;
@@ -70,6 +95,7 @@ function FileContentComponent({
   scrollOffset = 0,
   viewportHeight,
   highlightLine,
+  selectedLines,
   maxWidth,
   horizontalOffset = 0,
 }: FileContentProps): React.ReactElement {
@@ -115,6 +141,7 @@ function FileContentComponent({
         showLineNumbers={showLineNumbers}
         horizontalOffset={horizontalOffset}
         maxWidth={maxWidth}
+        selectedLines={selectedLines}
       />
     </Box>
   );
