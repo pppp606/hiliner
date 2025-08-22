@@ -4,6 +4,9 @@ export default {
   preset: 'ts-jest/presets/default-esm',
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   testEnvironment: 'jsdom',
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons']
+  },
   
   // Path configuration
   rootDir: '.',
@@ -50,19 +53,20 @@ export default {
   // Module name mapping (for path aliases if needed)
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^shiki$': '<rootDir>/src/__mocks__/shiki.ts'
   },
   
   // Handle node_modules - transform ESM dependencies
   transformIgnorePatterns: [
-    'node_modules/(?!(ink|ink-testing-library|chalk|ansi-escapes|cli-cursor)/)'
+    'node_modules/(?!(ink|ink-testing-library|chalk|ansi-escapes|cli-cursor|shiki)/)'
   ],
   
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   
   // Setup files for testing environment
-  setupFilesAfterEnv: [],
+  setupFilesAfterEnv: ['<rootDir>/src/testSetup.ts'],
   
   // Test timeout
   testTimeout: 10000,
