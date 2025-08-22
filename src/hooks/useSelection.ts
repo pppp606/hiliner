@@ -1,25 +1,6 @@
 import { useState, useCallback } from 'react';
 import * as selectionUtils from '../utils/selectionUtils.js';
-
-/**
- * Return type for the useSelection hook.
- */
-export interface UseSelectionReturn {
-  /** Current set of selected line numbers */
-  selectedLines: Set<number>;
-  /** Total number of selected lines */
-  selectionCount: number;
-  /** Toggle selection state of a specific line */
-  toggleSelection: (line: number) => void;
-  /** Select all lines within a range (inclusive) */
-  selectAll: (start: number, end: number) => void;
-  /** Deselect all lines within a range (inclusive) */
-  deselectAll: (start: number, end: number) => void;
-  /** Clear all selections */
-  clearSelection: () => void;
-  /** Check if a specific line is selected */
-  isSelected: (line: number) => boolean;
-}
+import type { UseSelectionReturn } from '../types.js';
 
 /**
  * Custom hook for managing line selection state in the file viewer.
