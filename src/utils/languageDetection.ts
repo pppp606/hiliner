@@ -1,14 +1,23 @@
 // Import the language detection library
 import pkg from '@vscode/vscode-languagedetection';
+
+// Type for ModelOperations constructor
+type ModelOperationsConstructor = new () => {
+  runModel(content: string): Promise<Array<{ languageId: string; confidence: number }>>;
+};
+
 // Handle both ESM and CommonJS environments
-let ModelOperations: any;
+let ModelOperations: ModelOperationsConstructor;
 if (pkg && typeof pkg === 'object' && 'ModelOperations' in pkg) {
-  ModelOperations = (pkg as any).ModelOperations;
+  ModelOperations = (pkg as { ModelOperations: ModelOperationsConstructor }).ModelOperations;
 } else if (pkg && typeof pkg === 'function') {
-  ModelOperations = pkg;
+  ModelOperations = pkg as ModelOperationsConstructor;
 } else {
   // Fallback - try to find ModelOperations in the package
-  ModelOperations = (pkg as any)?.default?.ModelOperations || (pkg as any)?.ModelOperations || pkg;
+  const fallback = (pkg as { default?: { ModelOperations: ModelOperationsConstructor }; ModelOperations?: ModelOperationsConstructor })?.default?.ModelOperations 
+    || (pkg as { ModelOperations: ModelOperationsConstructor })?.ModelOperations 
+    || pkg as ModelOperationsConstructor;
+  ModelOperations = fallback;
 }
 import { extname } from 'path';
 

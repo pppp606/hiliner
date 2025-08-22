@@ -92,7 +92,9 @@ export async function createHighlighter(options: {
   themes: string[];
   langs: string[];
 }): Promise<Highlighter> {
-  // Simulate async initialization
+  // Simulate async initialization (ignore unused options in mock)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { themes, langs } = options;
   await new Promise(resolve => setTimeout(resolve, 10));
   return mockHighlighter;
 }
