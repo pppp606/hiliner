@@ -5,6 +5,9 @@ import {
   clearSelection,
   isSelected,
   getSelectionCount,
+  toggleMultiple,
+  selectRange,
+  deselectRange,
 } from '../selectionUtils';
 
 describe('selectionUtils', () => {
@@ -201,6 +204,122 @@ describe('selectionUtils', () => {
       expect(isSelected(result, 1)).toBe(true);
       expect(isSelected(result, totalLines)).toBe(true);
       expect(isSelected(result, totalLines + 1)).toBe(false);
+    });
+  });
+
+  describe('bulk operations', () => {
+    describe('toggleMultiple', () => {
+      it('should toggle multiple lines efficiently', () => {
+        const selections = new Set([1, 3, 5]);
+        const result = toggleMultiple(selections, [2, 3, 4]);
+        
+        expect(result.has(1)).toBe(true);   // unchanged
+        expect(result.has(2)).toBe(true);   // added
+        expect(result.has(3)).toBe(false);  // removed (was selected)
+        expect(result.has(4)).toBe(true);   // added
+        expect(result.has(5)).toBe(true);   // unchanged
+        expect(getSelectionCount(result)).toBe(4);
+      });
+
+      it('should handle empty arrays', () => {
+        const selections = new Set([1, 2, 3]);
+        const result = toggleMultiple(selections, []);
+        
+        expect(result).toEqual(selections);
+        expect(getSelectionCount(result)).toBe(3);
+      });
+
+      it('should not modify original Set', () => {
+        const original = new Set([1, 2, 3]);
+        const result = toggleMultiple(original, [4, 5]);
+        
+        expect(original.size).toBe(3);
+        expect(result.size).toBe(5);
+        expect(original.has(4)).toBe(false);
+        expect(result.has(4)).toBe(true);
+      });
+    });
+
+    describe('selectRange', () => {
+      it('should select a range of lines', () => {
+        const selections = new Set([1, 10]);
+        const result = selectRange(selections, 5, 8);
+        
+        expect(result.has(1)).toBe(true);   // existing
+        expect(result.has(5)).toBe(true);   // added
+        expect(result.has(6)).toBe(true);   // added
+        expect(result.has(7)).toBe(true);   // added
+        expect(result.has(8)).toBe(true);   // added
+        expect(result.has(10)).toBe(true);  // existing
+        expect(getSelectionCount(result)).toBe(6);
+      });
+
+      it('should handle single line ranges', () => {
+        const selections = new Set<number>();
+        const result = selectRange(selections, 5, 5);
+        
+        expect(result.has(5)).toBe(true);
+        expect(getSelectionCount(result)).toBe(1);
+      });
+
+      it('should handle overlapping ranges', () => {
+        const selections = new Set([3, 4, 5]);
+        const result = selectRange(selections, 4, 7);
+        
+        expect(getSelectionCount(result)).toBe(5); // 3, 4, 5, 6, 7
+        expect(result.has(3)).toBe(true);
+        expect(result.has(7)).toBe(true);
+      });
+
+      it('should handle invalid ranges gracefully', () => {
+        const selections = new Set([1, 2]);
+        const result = selectRange(selections, 10, 5); // start > end
+        
+        expect(result).toEqual(selections); // no change
+        expect(getSelectionCount(result)).toBe(2);
+      });
+    });
+
+    describe('deselectRange', () => {
+      it('should deselect a range of lines', () => {
+        const selections = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        const result = deselectRange(selections, 4, 7);
+        
+        expect(result.has(3)).toBe(true);   // unchanged
+        expect(result.has(4)).toBe(false);  // removed
+        expect(result.has(5)).toBe(false);  // removed
+        expect(result.has(6)).toBe(false);  // removed
+        expect(result.has(7)).toBe(false);  // removed
+        expect(result.has(8)).toBe(true);   // unchanged
+        expect(getSelectionCount(result)).toBe(6);
+      });
+
+      it('should handle non-selected ranges', () => {
+        const selections = new Set([1, 2, 10]);
+        const result = deselectRange(selections, 5, 8);
+        
+        expect(result).toEqual(selections); // no change
+        expect(getSelectionCount(result)).toBe(3);
+      });
+
+      it('should handle partial overlaps', () => {
+        const selections = new Set([3, 4, 5, 6]);
+        const result = deselectRange(selections, 5, 10);
+        
+        expect(result.has(3)).toBe(true);
+        expect(result.has(4)).toBe(true);
+        expect(result.has(5)).toBe(false);
+        expect(result.has(6)).toBe(false);
+        expect(getSelectionCount(result)).toBe(2);
+      });
+
+      it('should handle invalid ranges gracefully', () => {
+        const selections = new Set([1, 2, 3]);
+        const result = deselectRange(selections, 10, 5); // start > end
+        
+        expect(result).toEqual(selections); // no change
+        expect(getSelectionCount(result)).toBe(3);
+      });
     });
   });
 });

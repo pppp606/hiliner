@@ -74,3 +74,61 @@ export function isSelected(selections: Set<number>, line: number): boolean {
 export function getSelectionCount(selections: Set<number>): number {
   return selections.size;
 }
+
+/**
+ * Efficiently toggle multiple lines in a single operation.
+ * This is much faster than calling toggleSelection repeatedly.
+ * 
+ * @param selections - Current selection set
+ * @param lines - Array of line numbers to toggle
+ * @returns New Set with all lines toggled
+ */
+export function toggleMultiple(selections: Set<number>, lines: number[]): Set<number> {
+  const newSelections = new Set(selections);
+  
+  for (const line of lines) {
+    if (newSelections.has(line)) {
+      newSelections.delete(line);
+    } else {
+      newSelections.add(line);
+    }
+  }
+  
+  return newSelections;
+}
+
+/**
+ * Efficiently select a range of lines.
+ * 
+ * @param selections - Current selection set
+ * @param start - Starting line number (inclusive)
+ * @param end - Ending line number (inclusive)
+ * @returns New Set with the range added
+ */
+export function selectRange(selections: Set<number>, start: number, end: number): Set<number> {
+  const newSelections = new Set(selections);
+  
+  for (let i = start; i <= end; i++) {
+    newSelections.add(i);
+  }
+  
+  return newSelections;
+}
+
+/**
+ * Efficiently deselect a range of lines.
+ * 
+ * @param selections - Current selection set
+ * @param start - Starting line number (inclusive)
+ * @param end - Ending line number (inclusive)
+ * @returns New Set with the range removed
+ */
+export function deselectRange(selections: Set<number>, start: number, end: number): Set<number> {
+  const newSelections = new Set(selections);
+  
+  for (let i = start; i <= end; i++) {
+    newSelections.delete(i);
+  }
+  
+  return newSelections;
+}
