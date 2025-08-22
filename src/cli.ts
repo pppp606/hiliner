@@ -40,11 +40,17 @@ Arguments:
 Interactive Mode (default):
   When only a file is provided, hiliner opens an interactive terminal viewer
   
-  Keyboard shortcuts:
+  Navigation shortcuts:
     ↑/↓               Scroll line by line
     Space/b           Page down/up
     g/G               Go to start/end of file
     q or Ctrl+C       Quit
+
+  Multi-selection shortcuts:
+    Tab               Toggle selection of current line
+    Shift+Tab         Range selection (from previously selected line)
+    a                 Select all visible lines
+    d or Escape       Clear all selections
 
 Static Mode Options:
   -o, --output <file>     Write output to file instead of stdout
