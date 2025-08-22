@@ -32,6 +32,7 @@ export function App({ filePath }: AppProps): React.ReactElement {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);  // Actual cursor position in file
   const [columnPosition, setColumnPosition] = useState(0);
+  const [rangeSelectionStart, setRangeSelectionStart] = useState<number | null>(null);
   
   // Throttling for rapid key presses
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,9 +66,26 @@ export function App({ filePath }: AppProps): React.ReactElement {
 
     // Multi-selection keyboard shortcuts (work when file is loaded)
     if (content && content.length > 0) {
-      // Tab: Toggle selection of current line
+      // Shift+Tab: Range selection
+      if (key.tab && key.shift) {
+        if (rangeSelectionStart === null) {
+          // No range start set, just toggle current line and mark as start
+          toggleSelection(cursorPosition + 1);
+          setRangeSelectionStart(cursorPosition + 1);
+        } else {
+          // Range selection from start to current position
+          const start = Math.min(rangeSelectionStart, cursorPosition + 1);
+          const end = Math.max(rangeSelectionStart, cursorPosition + 1);
+          selectAll(start, end);
+          setRangeSelectionStart(null); // Clear range selection
+        }
+        return;
+      }
+      
+      // Tab: Toggle selection of current line (or start range selection)
       if (key.tab) {
         toggleSelection(cursorPosition + 1); // Convert 0-based to 1-based line number
+        setRangeSelectionStart(cursorPosition + 1); // Mark as potential range start
         return;
       }
 
@@ -82,12 +100,14 @@ export function App({ filePath }: AppProps): React.ReactElement {
       // 'd': Deselect all lines
       if (input === 'd') {
         clearSelection();
+        setRangeSelectionStart(null);
         return;
       }
 
       // Escape: Clear all selections (same as 'd')
       if (key.escape) {
         clearSelection();
+        setRangeSelectionStart(null);
         return;
       }
     }
