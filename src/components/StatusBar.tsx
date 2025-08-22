@@ -1,35 +1,6 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
-
-interface StatusBarProps {
-  fileName?: string;
-  currentLine?: number;
-  totalLines?: number;
-  currentColumn?: number;
-  viewportStart?: number;
-  viewportEnd?: number;
-  encoding?: string;
-  isReadOnly?: boolean;
-  isBinary?: boolean;
-  mode?: string;
-  searchTerm?: string;
-  isLoading?: boolean;
-  isError?: boolean;
-  errorMessage?: string;
-  message?: string;
-  messageType?: 'success' | 'warning' | 'error';
-  temporaryMessage?: string;
-  temporaryMessageDuration?: number;
-  showNavigation?: boolean;
-  displayMode?: 'compact' | 'full';
-  maxWidth?: number;
-  theme?: string;
-  accentColor?: string;
-  fontSize?: string;
-  onShortcutPress?: (shortcut: string) => void;
-  syncWithParent?: boolean;
-  selectionCount?: number;
-}
+import type { StatusBarProps } from '../types.js';
 
 function StatusBarComponent({
   fileName,

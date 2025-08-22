@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
+import type { FileContentProps } from '../types.js';
 
 interface OptimizedFileDisplayProps {
   lines: string[];
@@ -69,24 +70,6 @@ const OptimizedFileDisplay = memo(({
   return <Text>{displayContent}</Text>;
 });
 
-interface FileContentProps {
-  lines: string[] | null;
-  showLineNumbers?: boolean;
-  startLineNumber?: number;
-  scrollOffset?: number;
-  viewportHeight?: number;
-  currentLine?: number;
-  highlightLine?: number;  // Line to highlight within the visible viewport
-  highlightedLines?: number[];
-  selectedLines?: Set<number>;  // Set of selected line numbers for multi-selection
-  enableSyntaxHighlighting?: boolean;
-  language?: string;
-  maxWidth?: number;
-  horizontalOffset?: number;
-  theme?: string;
-  fontSize?: string;
-  onLineClick?: (lineNumber: number) => void;
-}
 
 function FileContentComponent({
   lines,

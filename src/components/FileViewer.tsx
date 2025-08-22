@@ -1,22 +1,7 @@
 import React, { memo } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { FileContent } from './FileContent.js';
-
-interface FileData {
-  content: string;
-  lines: string[];
-  totalLines: number;
-  filePath: string;
-}
-
-interface FileViewerProps {
-  fileData: FileData | null;
-  scrollPosition?: number;
-  cursorPosition?: number;
-  onScrollChange?: (position: number) => void;
-  isFocused?: boolean;
-  selectedLines?: Set<number>;
-}
+import type { FileData, FileViewerProps } from '../types.js';
 
 function FileViewerComponent({ 
   fileData, 

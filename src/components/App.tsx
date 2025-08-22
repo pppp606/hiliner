@@ -4,10 +4,7 @@ import { useFileLoader } from '../hooks/useFileLoader.js';
 import { useSelection } from '../hooks/useSelection.js';
 import { FileViewer } from './FileViewer.js';
 import { StatusBar } from './StatusBar.js';
-
-interface AppProps {
-  filePath?: string;
-}
+import type { AppProps } from '../types.js';
 
 export function App({ filePath }: AppProps): React.ReactElement {
   const { exit } = useApp();
