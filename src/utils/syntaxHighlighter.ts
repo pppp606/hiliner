@@ -4,40 +4,103 @@ import { createHighlighter, type Highlighter, bundledLanguages, bundledThemes, t
 let highlighterInstance: Highlighter | null = null;
 let currentTheme = 'dark-plus';
 
+// Fast initialization with common languages only
+const COMMON_LANGUAGES: BundledLanguage[] = [
+  'javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'html', 'css', 'json', 'markdown', 'bash', 'yaml'
+];
+
+// Background initialization flag
+let isBackgroundInitializationComplete = false;
+
 /**
  * Initialize the Shiki highlighter with the specified theme
  * @param theme Theme name to use (defaults to 'dark-plus')
+ * @param fastInit Whether to use fast initialization with common languages only (default: true)
  * @returns Promise resolving to the highlighter instance
  */
-export async function initializeHighlighter(theme: string = 'dark-plus'): Promise<Highlighter> {
+export async function initializeHighlighter(theme: string = 'dark-plus', fastInit: boolean = true): Promise<Highlighter> {
+  const startTime = performance.now();
+  
   // If highlighter exists and theme hasn't changed, return existing instance
   if (highlighterInstance && currentTheme === theme) {
+    console.debug(`Syntax highlighter: Reused existing instance (${(performance.now() - startTime).toFixed(2)}ms)`);
+    // Start background loading if not complete
+    if (fastInit && !isBackgroundInitializationComplete) {
+      scheduleBackgroundInit();
+    }
     return highlighterInstance;
   }
   
   // Clean up existing highlighter if theme changed
   if (highlighterInstance && currentTheme !== theme) {
+    const cleanupStart = performance.now();
     highlighterInstance.dispose?.();
     highlighterInstance = null;
+    isBackgroundInitializationComplete = false;
+    console.debug(`Syntax highlighter: Cleanup took ${(performance.now() - cleanupStart).toFixed(2)}ms`);
   }
   
   try {
     // Validate theme exists
+    const themeValidationStart = performance.now();
     const availableThemes = Object.keys(bundledThemes) as BundledTheme[];
     const selectedTheme = availableThemes.includes(theme as BundledTheme) ? theme : 'dark-plus';
+    console.debug(`Syntax highlighter: Theme validation took ${(performance.now() - themeValidationStart).toFixed(2)}ms`);
     
-    // Initialize highlighter with all bundled languages and the selected theme
+    // Choose languages to load based on initialization mode
+    const initStart = performance.now();
+    const languagesToLoad = fastInit ? COMMON_LANGUAGES : Object.keys(bundledLanguages) as BundledLanguage[];
+    
     highlighterInstance = await createHighlighter({
       themes: [selectedTheme as BundledTheme],
-      langs: Object.keys(bundledLanguages) as BundledLanguage[],
+      langs: languagesToLoad,
     });
+    console.debug(`Syntax highlighter: Core initialization with ${languagesToLoad.length} languages took ${(performance.now() - initStart).toFixed(2)}ms`);
     
     currentTheme = selectedTheme;
+    
+    // Schedule background loading of remaining languages if using fast init
+    if (fastInit && !isBackgroundInitializationComplete) {
+      scheduleBackgroundInit();
+    } else {
+      isBackgroundInitializationComplete = true;
+    }
+    
+    console.debug(`Syntax highlighter: Total initialization time ${(performance.now() - startTime).toFixed(2)}ms`);
     return highlighterInstance!; // We just created it, so it's not null
   } catch (error) {
     console.error('Failed to initialize syntax highlighter:', error);
     throw error;
   }
+}
+
+/**
+ * Schedule background initialization of all languages
+ */
+function scheduleBackgroundInit(): void {
+  if (isBackgroundInitializationComplete) return;
+  
+  // Use setTimeout to avoid blocking the main thread
+  setTimeout(async () => {
+    try {
+      const bgStartTime = performance.now();
+      console.debug('Syntax highlighter: Starting background initialization of all languages...');
+      
+      // Get all languages that aren't already loaded
+      const allLanguages = Object.keys(bundledLanguages) as BundledLanguage[];
+      const remainingLanguages = allLanguages.filter(lang => !COMMON_LANGUAGES.includes(lang));
+      
+      if (remainingLanguages.length > 0) {
+        // Load remaining languages
+        await highlighterInstance?.loadLanguage(...remainingLanguages);
+        console.debug(`Syntax highlighter: Background loaded ${remainingLanguages.length} additional languages in ${(performance.now() - bgStartTime).toFixed(2)}ms`);
+      }
+      
+      isBackgroundInitializationComplete = true;
+    } catch (error) {
+      console.warn('Background language loading failed:', error);
+    }
+  }, 0);
 }
 
 /**
@@ -228,6 +291,18 @@ export async function highlightCode(
     if (!availableLanguages.includes(language)) {
       // Fallback to plain text for unsupported languages
       return code;
+    }
+    
+    // Check if the specific language is loaded, load it if needed
+    const loadedLanguages = highlighter.getLoadedLanguages();
+    if (!loadedLanguages.includes(language as BundledLanguage)) {
+      console.debug(`Syntax highlighter: Loading language '${language}' on demand`);
+      try {
+        await highlighter.loadLanguage(language as BundledLanguage);
+      } catch (error) {
+        console.warn(`Failed to load language '${language}':`, error);
+        return code; // Fallback to plain text
+      }
     }
     
     // Generate highlighted HTML

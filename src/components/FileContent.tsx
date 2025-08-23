@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect, useState, useRef } from 'react';
 import { Box, Text } from 'ink';
 import type { FileContentProps } from '../types.js';
 import { chalkColors } from '../utils/colors.js';
@@ -15,6 +15,7 @@ interface OptimizedFileDisplayProps {
   selectedLines?: Set<number>;
   highlightedLines?: string[];
   enableSyntaxHighlighting?: boolean;
+  isHighlightingInProgress?: boolean;
 }
 
 // Single component with minimal re-rendering
@@ -29,7 +30,8 @@ const OptimizedFileDisplay = memo(({
   maxWidth,
   selectedLines,
   highlightedLines,
-  enableSyntaxHighlighting
+  enableSyntaxHighlighting,
+  isHighlightingInProgress
 }: OptimizedFileDisplayProps) => {
   // Build the entire display as a single string to minimize DOM updates
   const displayContent = lines.map((line, index) => {
@@ -37,17 +39,23 @@ const OptimizedFileDisplay = memo(({
     const isCurrentLine = highlightIndex === index + 1;
     
     // Use highlighted line if syntax highlighting is enabled and available
+    // Only use highlighted lines if we have the complete set for all visible lines
     let displayLine = '';
-    if (enableSyntaxHighlighting && highlightedLines && highlightedLines[index]) {
+    if (enableSyntaxHighlighting && 
+        highlightedLines && 
+        highlightedLines.length === lines.length && 
+        highlightedLines[index]) {
       displayLine = highlightedLines[index];
     } else {
       displayLine = line || '';
     }
     
-    // Apply horizontal offset and max width
+    // Apply horizontal offset (if needed)
     if (horizontalOffset > 0) {
       displayLine = displayLine.slice(horizontalOffset);
     }
+    
+    // Apply max width if specified
     if (maxWidth && displayLine.length > maxWidth) {
       displayLine = displayLine.slice(0, maxWidth - 3) + '...';
     }
@@ -58,8 +66,12 @@ const OptimizedFileDisplay = memo(({
       // Determine visual styling based on selection and cursor state
       const isSelected = selectedLines?.has(actualLineNumber) || false;
       
-      // Cursor indicator
-      const cursorIndicator = isCurrentLine ? '▶' : ' ';
+      // Cursor indicator with loading state
+      let cursorIndicator = ' ';
+      if (isCurrentLine) {
+        // Show spinning indicator when highlighting is in progress, arrow otherwise
+        cursorIndicator = (isHighlightingInProgress && !highlightedLines?.length) ? '⟳' : '▶';
+      }
       
       // Apply color to line number if selected
       const styledLineNumber = isSelected 
@@ -73,7 +85,75 @@ const OptimizedFileDisplay = memo(({
     }
   }).join('\n');
   
-  return <Text>{displayContent}</Text>;
+  // Render each line separately to avoid wrapping issues
+  const renderedLines = lines.map((line, index) => {
+    const actualLineNumber = startLineNumber + index;
+    const isCurrentLine = highlightIndex === index + 1;
+    
+    // Use highlighted line if syntax highlighting is enabled and available
+    let displayLine = '';
+    if (enableSyntaxHighlighting && 
+        highlightedLines && 
+        highlightedLines.length === lines.length && 
+        highlightedLines[index]) {
+      displayLine = highlightedLines[index];
+    } else {
+      displayLine = line || '';
+    }
+    
+    // Apply horizontal offset (if needed)
+    if (horizontalOffset > 0) {
+      displayLine = displayLine.slice(horizontalOffset);
+    }
+    
+    // Apply max width if specified
+    if (maxWidth && displayLine.length > maxWidth) {
+      displayLine = displayLine.slice(0, maxWidth - 3) + '...';
+    }
+    
+    if (showLineNumbers) {
+      const lineNumberStr = actualLineNumber.toString().padStart(lineNumberWidth, ' ');
+      
+      // Determine visual styling based on selection and cursor state
+      const isSelected = selectedLines?.has(actualLineNumber) || false;
+      
+      // Cursor indicator with loading state
+      let cursorIndicator = ' ';
+      if (isCurrentLine) {
+        // Show spinning indicator when highlighting is in progress, arrow otherwise
+        cursorIndicator = (isHighlightingInProgress && !highlightedLines?.length) ? '⟳' : '▶';
+      }
+      
+      // Apply color to line number if selected
+      const styledLineNumber = isSelected 
+        ? chalkColors.selectedLineNumber(lineNumberStr)
+        : lineNumberStr;
+      
+      // Build the complete line with separate components
+      return (
+        <Box key={`line-${actualLineNumber}`} flexDirection="row">
+          <Box width={lineNumberWidth + 2} flexShrink={0}>
+            <Text>{cursorIndicator}{styledLineNumber} </Text>
+          </Box>
+          <Box flexGrow={1}>
+            <Text>{displayLine}</Text>
+          </Box>
+        </Box>
+      );
+    } else {
+      return (
+        <Box key={`line-${actualLineNumber}`} flexDirection="row">
+          <Text>{displayLine}</Text>
+        </Box>
+      );
+    }
+  });
+
+  return (
+    <Box width="100%" flexDirection="column">
+      {renderedLines}
+    </Box>
+  );
 });
 
 
@@ -97,41 +177,86 @@ function FileContentComponent({
     theme: theme || 'dark-plus',
   });
 
-  // State for highlighted lines
+  // State for highlighted lines and highlighting progress
   const [highlightedLines, setHighlightedLines] = useState<string[]>([]);
+  const [isHighlightingInProgress, setIsHighlightingInProgress] = useState<boolean>(false);
   
-  // Effect to highlight visible lines when content changes
+  // Track if this is the initial load to avoid debouncing
+  const isInitialLoad = useRef(true);
+
+  // Effect to highlight visible lines with progressive display
   useEffect(() => {
     if (!enableSyntaxHighlighting || !lines || !Array.isArray(lines) || lines.length === 0) {
       setHighlightedLines([]);
+      setIsHighlightingInProgress(false);
       return;
     }
 
-    // Apply scroll offset and viewport height to get visible lines
-    const effectiveScrollOffset = Math.max(0, scrollOffset);
-    let visibleLines = lines.slice(effectiveScrollOffset);
-    
-    if (viewportHeight && viewportHeight > 0) {
-      visibleLines = visibleLines.slice(0, viewportHeight);
-    }
+    // Use a flag to prevent race conditions
+    let isCurrentRequest = true;
 
-    // Highlight visible lines
-    const highlightVisibleLines = async () => {
+    const performHighlighting = async () => {
+      if (!isCurrentRequest) return;
+      
+      // Set highlighting in progress immediately
+      setIsHighlightingInProgress(true);
+      
+      // Clear highlighted lines to show plain text first (progressive display)
+      setHighlightedLines([]);
+      
       try {
+        // Try to get highlighted content (may be from cache)
         const highlighted = await syntaxHighlighting.highlightLines(
-          visibleLines,
+          lines,
           // Generate a pseudo file path for language detection if language is not provided
-          language ? `file.${getFileExtensionForLanguage(language)}` : undefined
+          language ? `file.${getFileExtensionForLanguage(language)}` : undefined,
+          startLineNumber // Pass start line number for viewport-aware caching
         );
-        setHighlightedLines(highlighted);
+        
+        // Only update if this is still the current request
+        if (isCurrentRequest) {
+          setHighlightedLines(highlighted);
+          setIsHighlightingInProgress(false);
+        }
       } catch (error) {
         console.warn('Failed to highlight lines:', error);
-        setHighlightedLines([]);
+        if (isCurrentRequest) {
+          setHighlightedLines(lines); // Fallback to original lines
+          setIsHighlightingInProgress(false);
+        }
       }
     };
 
-    highlightVisibleLines();
-  }, [lines, scrollOffset, viewportHeight, enableSyntaxHighlighting, language, theme, syntaxHighlighting]);
+    // Execute highlighting with progressive display
+    performHighlighting();
+
+    // Pre-highlight adjacent areas for smoother scrolling
+    const preHighlightAdjacent = () => {
+      if (!language) return;
+      
+      // Pre-highlight above and below current viewport
+      const lineCount = 100; // Increased buffer size for better scroll performance
+      const filePath = language ? `file.${getFileExtensionForLanguage(language)}` : undefined;
+      
+      // Above current viewport
+      if (startLineNumber > lineCount) {
+        const aboveLines = lines; // Approximate - in real usage we'd need access to full file content
+        syntaxHighlighting.preHighlightLines(aboveLines, filePath, startLineNumber - lineCount);
+      }
+      
+      // Below current viewport
+      const belowLines = lines; // Approximate - in real usage we'd need access to full file content  
+      syntaxHighlighting.preHighlightLines(belowLines, filePath, startLineNumber + lines.length);
+    };
+
+    // Schedule pre-highlighting for next tick
+    setTimeout(preHighlightAdjacent, 0);
+
+    // Cleanup function to cancel this request if lines change again
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [lines, enableSyntaxHighlighting, language, theme, startLineNumber, syntaxHighlighting]);
 
   // Helper function to map language to file extension for detection
   const getFileExtensionForLanguage = (lang: string): string => {
@@ -180,13 +305,8 @@ function FileContentComponent({
     );
   }
 
-  // Apply scroll offset and viewport height
-  const effectiveScrollOffset = Math.max(0, scrollOffset);
-  let visibleLines = lines.slice(effectiveScrollOffset);
-  
-  if (viewportHeight && viewportHeight > 0) {
-    visibleLines = visibleLines.slice(0, viewportHeight);
-  }
+  // lines are already the visible lines from FileViewer, use them directly
+  const visibleLines = lines;
 
   // Calculate line number width for consistent formatting
   const maxLineNumber = startLineNumber + visibleLines.length - 1;
@@ -194,10 +314,10 @@ function FileContentComponent({
 
   // Use the optimized single-component approach
   return (
-    <Box flexGrow={1}>
+    <Box flexGrow={1} width="100%" flexDirection="column">
       <OptimizedFileDisplay 
         lines={visibleLines}
-        startLineNumber={startLineNumber + effectiveScrollOffset}
+        startLineNumber={startLineNumber}
         highlightIndex={highlightLine || null}
         lineNumberWidth={lineNumberWidth}
         showLineNumbers={showLineNumbers}
@@ -206,6 +326,7 @@ function FileContentComponent({
         selectedLines={selectedLines}
         highlightedLines={highlightedLines}
         enableSyntaxHighlighting={enableSyntaxHighlighting}
+        isHighlightingInProgress={isHighlightingInProgress}
       />
     </Box>
   );

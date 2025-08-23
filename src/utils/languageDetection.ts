@@ -24,6 +24,10 @@ import { extname } from 'path';
 // Language detection instance
 let languageDetector: InstanceType<typeof ModelOperations> | null = null;
 
+// Cache for language detection results to avoid repeated analysis
+const languageCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
+
 // Common file extension mappings to language identifiers
 const EXTENSION_MAP: Record<string, string> = {
   '.js': 'javascript',
@@ -218,36 +222,88 @@ function mapVSCodeLanguageToShiki(vscodeLanguageId: string): string {
 }
 
 /**
- * Detect programming language from filename and content
- * Priority: Shebang > File Extension > Content Analysis > Plain Text
+ * Generate a cache key for language detection results
+ * Uses filename extension + content hash for efficient caching
+ */
+function generateCacheKey(filename: string, content: string): string {
+  const extension = extname(filename).toLowerCase();
+  // Use first/last 100 chars + content length for fast fingerprinting
+  const contentFingerprint = content.length + ':' + 
+    (content.length > 200 ? content.slice(0, 100) + content.slice(-100) : content);
+  return `${extension}:${contentFingerprint}`;
+}
+
+/**
+ * Manage cache size to prevent memory bloat
+ */
+function maintainCacheSize(): void {
+  if (languageCache.size > MAX_CACHE_SIZE) {
+    const keysToDelete = Array.from(languageCache.keys()).slice(0, languageCache.size - MAX_CACHE_SIZE + 100);
+    for (const key of keysToDelete) {
+      languageCache.delete(key);
+    }
+  }
+}
+
+/**
+ * Detect programming language from filename and content with caching
+ * Priority: Cache > Shebang > File Extension > Content Analysis > Plain Text
  * 
  * @param filename The name of the file (including extension)
  * @param content The content of the file
  * @returns Promise resolving to the detected language identifier
  */
 export async function detectLanguage(filename: string, content: string): Promise<string> {
+  const startTime = performance.now();
+  
   try {
+    // 0. Check cache first (fastest)
+    const cacheKey = generateCacheKey(filename, content);
+    const cachedResult = languageCache.get(cacheKey);
+    if (cachedResult) {
+      console.debug(`Language detection: Cache hit for '${filename}' (${(performance.now() - startTime).toFixed(2)}ms)`);
+      return cachedResult;
+    }
+    
+    let detectedLanguage: string | null = null;
+    
     // 1. Check for shebang line (highest priority)
+    const shebangStart = performance.now();
     const shebangLanguage = detectFromShebang(content);
     if (shebangLanguage) {
-      return shebangLanguage;
+      detectedLanguage = shebangLanguage;
+      console.debug(`Language detection: Shebang detection (${(performance.now() - shebangStart).toFixed(2)}ms)`);
     }
     
     // 2. Check file extension (second priority)
-    // But only if the content has meaningful non-whitespace content
-    const extensionLanguage = detectFromExtension(filename);
-    if (extensionLanguage && content.trim()) {
-      return extensionLanguage;
+    if (!detectedLanguage) {
+      const extensionStart = performance.now();
+      const extensionLanguage = detectFromExtension(filename);
+      if (extensionLanguage && content.trim()) {
+        detectedLanguage = extensionLanguage;
+        console.debug(`Language detection: Extension detection (${(performance.now() - extensionStart).toFixed(2)}ms)`);
+      }
     }
     
-    // 3. Analyze content (third priority)
-    const contentLanguage = await detectFromContent(content);
-    if (contentLanguage) {
-      return contentLanguage;
+    // 3. Analyze content (third priority - slowest)
+    if (!detectedLanguage) {
+      const contentStart = performance.now();
+      const contentLanguage = await detectFromContent(content);
+      if (contentLanguage) {
+        detectedLanguage = contentLanguage;
+        console.debug(`Language detection: Content analysis (${(performance.now() - contentStart).toFixed(2)}ms)`);
+      }
     }
     
     // 4. Default to plain text
-    return 'text';
+    const finalLanguage = detectedLanguage || 'text';
+    
+    // Cache the result
+    languageCache.set(cacheKey, finalLanguage);
+    maintainCacheSize();
+    
+    console.debug(`Language detection: Total time for '${filename}': ${(performance.now() - startTime).toFixed(2)}ms -> ${finalLanguage}`);
+    return finalLanguage;
     
   } catch (error) {
     console.warn('Language detection failed:', error);
