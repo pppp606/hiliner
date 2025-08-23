@@ -255,7 +255,8 @@ export function App({ filePath }: AppProps): React.ReactElement {
     content: content.join('\n'),
     lines: content,
     totalLines: content.length,
-    filePath: filePath
+    filePath: filePath,
+    metadata: metadata || undefined
   };
 
   // Normal file display
@@ -274,6 +275,9 @@ export function App({ filePath }: AppProps): React.ReactElement {
         currentLine={cursorPosition + 1}
         totalLines={content.length}
         selectionCount={selectionCount}
+        detectedLanguage={metadata?.detectedLanguage}
+        syntaxHighlightingEnabled={true}
+        encoding={metadata?.encoding}
       />
     </Box>
   );

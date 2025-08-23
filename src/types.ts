@@ -187,6 +187,10 @@ export interface FileMetadata {
   isBinary?: boolean;
   /** File modification timestamp */
   lastModified?: Date;
+  /** Detected programming language for syntax highlighting */
+  detectedLanguage?: string;
+  /** Confidence score for language detection (0-1) */
+  languageConfidence?: number;
 }
 
 // ========================================
@@ -354,4 +358,10 @@ export interface StatusBarProps {
   syncWithParent?: boolean;
   /** Number of currently selected lines */
   selectionCount?: number;
+  /** Detected programming language */
+  detectedLanguage?: string;
+  /** Whether syntax highlighting is enabled */
+  syntaxHighlightingEnabled?: boolean;
+  /** Current syntax highlighting theme */
+  syntaxTheme?: string;
 }

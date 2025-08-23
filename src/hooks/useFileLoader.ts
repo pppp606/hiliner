@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { FileValidationError, FileMetadata, loadFileContent, FileLoadOptions, ErrorType } from '../utils/fileLoader.js';
+import { detectLanguage } from '../utils/languageDetection.js';
 
 export interface UseFileLoaderOptions {
   maxSize?: number;
@@ -103,13 +104,29 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
       // }
 
       if (result.success) {
+        // Detect language for the loaded content
+        let enhancedMetadata = result.metadata;
+        if (result.metadata) {
+          try {
+            const content = result.lines.join('\n');
+            const detectedLanguage = await detectLanguage(filePath, content);
+            enhancedMetadata = {
+              ...result.metadata,
+              detectedLanguage,
+              // We could add confidence score here if needed
+            };
+          } catch (error) {
+            console.warn('Language detection failed during file loading:', error);
+          }
+        }
+
         setContent(result.lines);
-        setMetadata(result.metadata);
+        setMetadata(enhancedMetadata);
         setError(null);
         // Store successful content for potential restoration
         lastSuccessfulContentRef.current = { 
           content: result.lines, 
-          metadata: result.metadata 
+          metadata: enhancedMetadata 
         };
       } else {
         // On error, restore previous successful content 

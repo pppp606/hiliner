@@ -49,6 +49,8 @@ function FileViewerComponent({
         highlightLine={cursorPosition - startLine + 1}
         horizontalOffset={0}
         selectedLines={selectedLines}
+        enableSyntaxHighlighting={true}
+        language={fileData.metadata?.detectedLanguage}
       />
     </Box>
   );
