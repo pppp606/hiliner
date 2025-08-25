@@ -4,10 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Hiliner is an interactive CLI file viewer built with Ink (React for CLI) that transforms from a static line highlighting tool to an interactive terminal-based file browser. The project operates in two modes:
+Hiliner is an interactive CLI file viewer built with Ink (React for CLI) that transforms from a static line highlighting tool to an interactive terminal-based file browser. The project operates in two modes with comprehensive syntax highlighting support:
 
-1. **Interactive Mode** (default): Full-screen terminal viewer with keyboard navigation
-2. **Static Mode**: Legacy line highlighting functionality for CI/CD and scripting
+1. **Interactive Mode** (default): Full-screen terminal viewer with keyboard navigation and real-time syntax highlighting
+2. **Static Mode**: Legacy line highlighting functionality for CI/CD and scripting with syntax highlighting output
+
+### Syntax Highlighting Architecture
+- **Language Detection**: Uses @vscode/vscode-languagedetection for ML-based content analysis
+- **Syntax Highlighting**: Shiki library with TextMate grammars and VS Code themes
+- **ANSI Rendering**: Custom HTML-to-ANSI converter for terminal display
+- **Performance Optimization**: 50MB caching system with viewport-limited processing
 
 ## Development Commands
 
@@ -56,11 +62,18 @@ Note: The binary requires `npm run build` first as it loads from `dist/` directo
 
 ### Key Technical Decisions
 
+**Syntax Highlighting System**: 
+- `utils/languageDetection.ts`: ML-based language detection using VS Code's model
+- `utils/syntaxHighlighter.ts`: Shiki integration with HTML-to-ANSI conversion
+- `hooks/useSyntaxHighlighting.ts`: React hook managing highlighting state and caching
+- Performance optimization with viewport-limited processing and 50MB cache
+
 **Performance Optimizations**: 
 - Single text block rendering in `FileContent.tsx` to prevent DOM fragmentation
 - React.memo usage throughout components to minimize re-renders
 - iTerm2 compatibility with height constraints to prevent screen flickering
 - Throttled keyboard input handling for smooth navigation
+- Syntax highlighting cache with LRU eviction and viewport-aware keys
 
 **Terminal Management**:
 - Alternate screen buffer usage (`\x1B[?1049h/l`) for clean enter/exit
@@ -77,13 +90,19 @@ Note: The binary requires `npm run build` first as it loads from `dist/` directo
 ### Core Implementation
 - `src/cli.ts`: CLI argument parsing and mode detection
 - `src/components/`: Ink React components for interactive UI
-- `src/hooks/`: React hooks for state management (file loading)  
-- `src/utils/`: Pure utility functions (file operations, validation)
+- `src/hooks/`: React hooks for state management (file loading, syntax highlighting)  
+- `src/utils/`: Pure utility functions (file operations, validation, syntax highlighting)
+
+### Syntax Highlighting System
+- `src/utils/languageDetection.ts`: ML-based language detection using @vscode/vscode-languagedetection
+- `src/utils/syntaxHighlighter.ts`: Shiki integration with HTML-to-ANSI conversion and theme management
+- `src/hooks/useSyntaxHighlighting.ts`: React hook managing highlighting state, caching, and performance optimization
+- `src/__mocks__/shiki.ts`: Jest mocks for testing syntax highlighting functionality
 
 ### Legacy Static Mode
-- `src/highlighter.ts`: Static line highlighting logic
+- `src/highlighter.ts`: Static line highlighting logic with syntax highlighting integration
 - `src/parser.ts`: Line specification parsing (`1-5`, `10+3`, etc.)
-- `src/types.ts`: Shared TypeScript interfaces
+- `src/types.ts`: Shared TypeScript interfaces including syntax highlighting options
 
 ### Testing Strategy
 - Component tests temporarily disabled due to ink-testing-library ESM compatibility issues
@@ -100,6 +119,13 @@ The file loader has built-in 10MB size limits and memory-efficient streaming. Al
 
 ### Component Updates
 Use React.memo strategically and prefer single-render approaches in `FileContent.tsx`. The optimized display pattern minimizes terminal rendering updates.
+
+### Syntax Highlighting Development
+- **Performance**: Always use viewport-limited processing to prevent highlighting large files entirely
+- **Caching**: The 50MB cache uses viewport-aware keys - changing line ranges creates new cache entries
+- **Error Handling**: All highlighting operations must have fallbacks to plain text
+- **Race Conditions**: Use operation IDs in useSyntaxHighlighting hook to prevent stale updates
+- **Theme Management**: Shiki themes are loaded once and reused across all highlighting operations
 
 ### TypeScript and ESM
 - Import statements must use `.js` extensions for compiled output

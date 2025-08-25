@@ -6,10 +6,7 @@
  */
 
 import type {
-  LineSpec,
-  HighlightOptions,
   CLIArgs,
-  // Now implemented types
   SelectionState,
   FileData,
   FileViewerProps,
@@ -21,40 +18,15 @@ import type {
 
 describe('Type Definitions', () => {
   describe('Existing Types', () => {
-    it('should have valid LineSpec interface', () => {
-      const lineSpec: LineSpec = {
-        start: 1,
-        end: 5,
-        original: '1-5'
-      };
-      
-      expect(lineSpec.start).toBe(1);
-      expect(lineSpec.end).toBe(5);
-      expect(lineSpec.original).toBe('1-5');
-    });
-
-    it('should have valid HighlightOptions interface', () => {
-      const options: HighlightOptions = {
-        marker: '>',
-        showLineNumbers: true,
-        relativeLineNumbers: false,
-        context: 2
-      };
-      
-      expect(options.marker).toBe('>');
-      expect(options.showLineNumbers).toBe(true);
-    });
-
     it('should have valid CLIArgs interface', () => {
       const args: CLIArgs = {
         file: 'test.txt',
-        lines: ['1', '5-10'],
-        static: false,
+        theme: 'dark-plus',
         debug: true
       };
       
       expect(args.file).toBe('test.txt');
-      expect(args.lines).toEqual(['1', '5-10']);
+      expect(args.theme).toBe('dark-plus');
     });
   });
 

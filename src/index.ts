@@ -1,8 +1,6 @@
 /**
- * Hiliner - A tool to highlight specific lines in code files
+ * Hiliner - Interactive CLI file viewer with syntax highlighting
  * Main entry point for the library
  */
 
-export { highlightLines } from './highlighter.js';
-export { parseLineSpecs } from './parser.js';
-export { type LineSpec, type HighlightOptions } from './types.js';
+export { main } from './cli.js';

@@ -33,6 +33,7 @@
     "**/__tests__/**",
     "**/*.test.*",
     "**/*.spec.*",
+    "**/__mocks__/**",
     "dist/**",
     "node_modules/**"
   ]

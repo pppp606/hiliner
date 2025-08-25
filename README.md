@@ -1,17 +1,32 @@
 # Hiliner
 
-An interactive CLI file viewer built with Ink (React for CLI) that transforms from a static line highlighting tool to an interactive terminal-based file browser. Hiliner operates in two modes to provide both interactive browsing and scriptable text processing capabilities.
+An interactive CLI file viewer built with Ink (React for CLI) providing a full-screen terminal-based file browser with advanced syntax highlighting and navigation features.
 
 ## Features
 
-### Dual-Mode Operation
-- **Interactive Mode** (default): Full-screen terminal viewer with keyboard navigation and multi-selection
-- **Static Mode**: Legacy line highlighting functionality for CI/CD and scripting
+### Interactive File Viewing
+- **Full-screen terminal interface**: Optimized for seamless file browsing
+- **Keyboard navigation**: Vim-style shortcuts for efficient navigation
+- **Multi-line selection**: Advanced selection system with visual indicators
+
+### Syntax Highlighting
+- **Automatic language detection**: Uses VS Code's machine learning model for accurate language detection
+- **50+ programming languages**: JavaScript, Python, TypeScript, Rust, Go, Java, C++, and many more
+- **60+ themes available**: Choose from the full collection of [Shiki bundled themes](https://shiki.style/themes)
+- **Terminal-optimized rendering**: ANSI escape sequences for fast, colorful display
+- **Fallback support**: Graceful degradation to plain text when highlighting fails
+- **Performance optimized**: Viewport-limited processing with 50MB cache for smooth scrolling
 
 ### Multi-Selection Support
 - Select multiple lines for visual highlighting and reference
 - Visual indicators show selected line numbers in the status bar
 - Keyboard shortcuts for efficient selection management
+
+### Status Bar Information
+- Current line and column position
+- File size and total lines
+- Active syntax highlighting theme (when applicable)
+- Selected line count (when multi-selection is active)
 
 ### Terminal Navigation
 - Vim-style navigation (arrow keys, page up/down, go to start/end)
@@ -35,37 +50,18 @@ npm run build
 
 ## Usage
 
-### Interactive Mode
-
 Launch the interactive file viewer:
 
 ```bash
 hiliner path/to/file.txt
+
+# With custom theme
+hiliner --theme github-light path/to/file.txt
+hiliner -t monokai path/to/file.txt
+hiliner --theme dracula path/to/file.txt
 ```
 
-### Static Mode
-
-Highlight specific lines for scripting and CI/CD:
-
-```bash
-# Highlight single line
-hiliner file.txt 15
-
-# Highlight line range
-hiliner file.txt 10-20
-
-# Highlight multiple ranges
-hiliner file.txt 5-8,15,20-25
-
-# Highlight with context
-hiliner file.txt 15+3    # Line 15 with 3 lines context
-
-# Additional options
-hiliner file.txt 10-20 --no-line-numbers
-hiliner file.txt 15 --marker ">>>"
-```
-
-## Interactive Mode Keyboard Shortcuts
+## Keyboard Shortcuts
 
 ### Navigation
 | Key | Action |
@@ -118,6 +114,7 @@ The multi-selection feature allows you to highlight and track multiple lines whi
 -h, --help             Show help message
 -v, --version          Show version information
 --static               Force static mode (disable interactive)
+-t, --theme <name>     Set syntax highlighting theme (default: dark-plus)
 ```
 
 ### Static Mode Options
@@ -126,6 +123,7 @@ The multi-selection feature allows you to highlight and track multiple lines whi
 --marker <string>      Custom line marker (default: ">>>")
 --context <number>     Lines of context around highlighted lines
 --relative             Use relative line numbering
+-t, --theme <name>     Set syntax highlighting theme (also available in interactive mode)
 ```
 
 ## Examples
@@ -146,24 +144,97 @@ hiliner src/components/App.tsx
 ### Static Mode Examples
 
 ```bash
-# CI/CD: Highlight failed test lines
+# CI/CD: Highlight failed test lines with syntax highlighting
 hiliner test-output.log 45-67 --marker "FAIL"
 
-# Code review: Show specific changes
+# Code review: Show specific TypeScript changes with syntax colors
 hiliner src/utils.ts 120-125,140,155-160
 
-# Documentation: Extract key sections
+# Documentation: Extract key sections from Markdown with highlighting
 hiliner README.md 1-10,50-60 --context 2
+
+# View Python function with syntax highlighting and custom marker
+hiliner app.py 25-45 --marker ">>>"
+```
+
+### Syntax Highlighting Examples
+
+```bash
+# Interactive mode with automatic language detection
+hiliner src/main.rs                    # Rust syntax highlighting
+hiliner components/App.tsx              # TypeScript/JSX highlighting
+hiliner api/server.py                   # Python highlighting
+
+# Interactive mode with custom themes
+hiliner --theme dracula src/main.rs     # Rust with Dracula theme
+hiliner -t monokai components/App.tsx   # TypeScript with Monokai theme
+hiliner --theme github-dark api/server.py # Python with GitHub Dark theme
+
+# Static mode preserves syntax colors in output
+hiliner main.go 1-20 > highlighted.txt         # Go syntax with line numbers
+hiliner script.sh 10+5 --theme one-dark-pro   # Shell script with theme and context
+hiliner config.json 1-30 --theme catppuccin-mocha # JSON with Catppuccin theme
+```
+
+### Theme Switching
+
+Hiliner supports 60+ syntax highlighting themes from the [Shiki theme collection](https://shiki.style/themes). Use the `--theme` or `-t` option to specify a theme:
+
+```bash
+# Popular themes
+hiliner --theme dark-plus file.js       # VS Code Dark+ (default)
+hiliner --theme monokai file.py         # Monokai
+hiliner --theme dracula file.rs         # Dracula
+hiliner --theme github-dark file.go     # GitHub Dark
+hiliner --theme one-dark-pro file.ts    # One Dark Pro
+
+# Light themes
+hiliner --theme light-plus file.js      # VS Code Light+
+hiliner --theme github-light file.py    # GitHub Light
+hiliner --theme catppuccin-latte file.rs # Catppuccin Latte
+
+# Works in both interactive and static modes
+hiliner --theme nord file.txt           # Interactive with Nord theme
+hiliner file.txt 1-10 --theme solarized-dark # Static with Solarized Dark
+```
+
+**Theme Requirements**:
+- Theme names are case-sensitive and must match exactly (lowercase with hyphens)
+- Invalid theme names will display a warning and fall back to the default `dark-plus` theme
+- In interactive mode, the current theme name is displayed in the status bar
+- For the complete list of available themes, visit the [Shiki themes page](https://shiki.style/themes)
+
+**Error Handling**:
+```bash
+# Invalid theme example
+hiliner --theme invalid-theme file.js
+# Warning: Theme 'invalid-theme' not found. Using default theme 'dark-plus'.
 ```
 
 ## File Support
 
 ### Supported File Types
-- Text files (`.txt`, `.md`, `.json`, `.yaml`, etc.)
-- Source code (`.js`, `.ts`, `.py`, `.go`, `.rs`, etc.)
-- Configuration files
-- Log files
-- Any UTF-8 encoded text file
+Hiliner automatically detects and provides syntax highlighting for:
+
+- **JavaScript/TypeScript**: `.js`, `.jsx`, `.ts`, `.tsx`
+- **Python**: `.py`
+- **Rust**: `.rs`
+- **Go**: `.go`
+- **Java**: `.java`
+- **C/C++**: `.c`, `.cpp`, `.h`, `.hpp`
+- **C#**: `.cs`
+- **PHP**: `.php`
+- **Ruby**: `.rb`
+- **Swift**: `.swift`
+- **Kotlin**: `.kt`
+- **Scala**: `.scala`
+- **Shell scripts**: `.sh`, `.bash`, `.zsh`, `.fish`
+- **Web technologies**: `.html`, `.css`, `.scss`, `.json`, `.xml`, `.yaml`
+- **Configuration files**: `.toml`, `.ini`, `.dockerfile`
+- **Documentation**: `.md`, `.rst`
+- **And many more...**
+
+For files without extensions or unknown types, hiliner uses content-based language detection.
 
 ### File Size Limits
 - Default maximum: 10MB
@@ -236,7 +307,11 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 ### v0.1.0
 - Initial release with interactive and static modes
+- **Syntax highlighting** for 50+ programming languages using Shiki and VS Code language detection
+- **Automatic language detection** with ML-based content analysis and file extension mapping
+- **Terminal-optimized rendering** with ANSI escape sequences for fast display
+- **Performance optimization** with viewport-limited processing and 50MB caching system
 - Multi-selection functionality with keyboard shortcuts
 - Optimized terminal rendering and navigation
 - File loading with validation and error handling
-- Comprehensive test coverage
+- Comprehensive test coverage with end-to-end testing
