@@ -6,7 +6,7 @@ import { FileViewer } from './FileViewer.js';
 import { StatusBar } from './StatusBar.js';
 import type { AppProps } from '../types.js';
 
-export function App({ filePath }: AppProps): React.ReactElement {
+export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const terminalHeight = Math.max(10, (stdout?.rows || 24) - 1); // -1 to prevent flickering in iTerm2 when content exceeds screen height
@@ -52,6 +52,7 @@ export function App({ filePath }: AppProps): React.ReactElement {
   useEffect(() => {
     clearSelection();
   }, [content, clearSelection]);
+
 
   // Calculate viewport height for scrolling logic
   const viewportHeight = Math.max(10, terminalHeight - 1);  // -1 for status bar (height already reduced for iTerm2 compatibility)
@@ -204,9 +205,11 @@ export function App({ filePath }: AppProps): React.ReactElement {
     return (
       <Box flexDirection="column" height={terminalHeight}>
         <Box flexGrow={1} justifyContent="center" alignItems="center">
-          {errorMessage.includes('not found') ? 'File not found' : 
-           errorMessage.includes('cannot be loaded') ? 'File cannot be loaded' : 
-           `Error: ${errorMessage}`}
+          <Text>
+            {errorMessage.includes('not found') ? 'File not found' : 
+             errorMessage.includes('cannot be loaded') ? 'File cannot be loaded' : 
+             `Error: ${errorMessage}`}
+          </Text>
         </Box>
         <StatusBar 
           fileName={filePath.split('/').pop() || ''} 
@@ -240,7 +243,7 @@ export function App({ filePath }: AppProps): React.ReactElement {
     return (
       <Box flexDirection="column" height={terminalHeight}>
         <Box flexGrow={1} justifyContent="center" alignItems="center">
-          Binary file - cannot display content
+          <Text>Binary file - cannot display content</Text>
         </Box>
         <StatusBar 
           fileName={filePath.split('/').pop() || ''} 
@@ -269,6 +272,7 @@ export function App({ filePath }: AppProps): React.ReactElement {
         onScrollChange={handleScrollChange}
         isFocused={true}
         selectedLines={selectedLines}
+        theme={theme}
       />
       <StatusBar 
         fileName={filePath.split('/').pop() || ''}
@@ -277,7 +281,9 @@ export function App({ filePath }: AppProps): React.ReactElement {
         selectionCount={selectionCount}
         detectedLanguage={metadata?.detectedLanguage}
         syntaxHighlightingEnabled={true}
+        syntaxTheme={theme}
         encoding={metadata?.encoding}
+        theme={theme}
       />
     </Box>
   );

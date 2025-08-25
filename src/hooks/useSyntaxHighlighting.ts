@@ -7,8 +7,6 @@ export interface UseSyntaxHighlightingOptions {
   enabled?: boolean;
   /** Theme to use for syntax highlighting (default: 'dark-plus') */
   theme?: string;
-  /** Maximum number of lines to process at once for performance (default: 1000) */
-  batchSize?: number;
   /** Whether to enable caching of highlighted content (default: true) */
   enableCaching?: boolean;
 }
@@ -44,7 +42,6 @@ export function useSyntaxHighlighting(options?: UseSyntaxHighlightingOptions): U
   const {
     enabled: initialEnabled = true,
     theme: initialTheme = 'dark-plus',
-    batchSize = 1000,
     enableCaching = true,
   } = options || {};
 
@@ -101,6 +98,32 @@ export function useSyntaxHighlighting(options?: UseSyntaxHighlightingOptions): U
       setDetectedLanguage(fallbackLanguage);
       return fallbackLanguage;
     }
+  }, []);
+
+  // Generate stable viewport-aware cache key for better cache efficiency
+  const generateViewportCacheKey = useCallback((lines: string[], language: string, currentTheme: string, startLineNumber: number): string => {
+    // Create a more stable hash based on content
+    const content = lines.join('\n');
+    const contentHash = content.length > 100 ? 
+      content.substring(0, 50) + content.substring(content.length - 50) :
+      content;
+    
+    // Use a hash of the content rather than just length
+    let hash = 0;
+    for (let i = 0; i < contentHash.length; i++) {
+      const char = contentHash.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return `${language}:${currentTheme}:${startLineNumber}:${lines.length}:${hash}`;
+  }, []);
+
+  // Estimate cache entry size in bytes
+  const estimateCacheEntrySize = useCallback((lines: string[]): number => {
+    // Estimate size as sum of string lengths * 2 (for Unicode) + overhead
+    const contentSize = lines.reduce((total, line) => total + (line.length * 2), 0);
+    return contentSize + 100; // Add overhead for array structure
   }, []);
 
   // Highlight lines with aggressive caching and pre-rendering for smooth scrolling
@@ -201,33 +224,7 @@ export function useSyntaxHighlighting(options?: UseSyntaxHighlightingOptions): U
         setIsHighlighting(false);
       }
     }
-  }, [enabled, detectedLanguage, theme, batchSize, enableCaching, detectLanguageFromContent]);
-
-  // Generate stable viewport-aware cache key for better cache efficiency
-  const generateViewportCacheKey = useCallback((lines: string[], language: string, currentTheme: string, startLineNumber: number): string => {
-    // Create a more stable hash based on content
-    const content = lines.join('\n');
-    const contentHash = content.length > 100 ? 
-      content.substring(0, 50) + content.substring(content.length - 50) :
-      content;
-    
-    // Use a hash of the content rather than just length
-    let hash = 0;
-    for (let i = 0; i < contentHash.length; i++) {
-      const char = contentHash.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    
-    return `viewport:${language}:${currentTheme}:${startLineNumber}:${lines.length}:${Math.abs(hash)}`;
-  }, []);
-
-  // Estimate cache entry size in bytes
-  const estimateCacheEntrySize = useCallback((lines: string[]): number => {
-    // Estimate size as sum of string lengths * 2 (for Unicode) + overhead
-    const contentSize = lines.reduce((total, line) => total + (line.length * 2), 0);
-    return contentSize + 100; // Add overhead for array structure
-  }, []);
+  }, [enabled, detectedLanguage, theme, enableCaching, detectLanguageFromContent, estimateCacheEntrySize, generateViewportCacheKey]);
 
   // Toggle highlighting on/off
   const toggleHighlighting = useCallback(() => {
@@ -292,7 +289,7 @@ export function useSyntaxHighlighting(options?: UseSyntaxHighlightingOptions): U
         // Silently ignore pre-highlighting errors
       }
     }, 0);
-  }, [enabled, detectedLanguage, theme, enableCaching, generateViewportCacheKey, detectLanguageFromContent, highlightCode, estimateCacheEntrySize, maxCacheSize]);
+  }, [enabled, detectedLanguage, theme, enableCaching, generateViewportCacheKey, detectLanguageFromContent, estimateCacheEntrySize, maxCacheSize]);
 
   // Clear cache and reset size tracking
   const clearCache = useCallback(() => {

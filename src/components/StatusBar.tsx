@@ -13,7 +13,9 @@ function StatusBarComponent({
   selectionCount = 0,
   detectedLanguage,
   syntaxHighlightingEnabled = false,
+  syntaxTheme,
   encoding,
+  theme,
 }: StatusBarProps): React.ReactElement {
 
   // Build position information
@@ -47,12 +49,19 @@ function StatusBarComponent({
       statusParts.push('[Binary]');
     }
     
-    // Add detected language
+    // Add detected language and theme
     if (detectedLanguage && detectedLanguage !== 'text') {
-      const languageDisplay = syntaxHighlightingEnabled ? 
-        detectedLanguage.toUpperCase() : 
-        `${detectedLanguage.toUpperCase()} (no highlight)`;
-      statusParts.push(languageDisplay);
+      if (syntaxHighlightingEnabled) {
+        const languageDisplay = detectedLanguage.toUpperCase();
+        statusParts.push(languageDisplay);
+        
+        // Add theme with (current) marker when syntax highlighting is enabled
+        if (syntaxTheme) {
+          statusParts.push(`${syntaxTheme} (current)`);
+        }
+      } else {
+        statusParts.push(`${detectedLanguage.toUpperCase()} (no highlight)`);
+      }
     }
     
     // Add encoding if available and different from utf8

@@ -13,7 +13,14 @@ const __dirname = dirname(__filename);
 
 // Try to load from dist first (production), then src (development)
 try {
-  await import(join(__dirname, '..', 'dist', 'cli.js'));
+  const cliModule = await import(join(__dirname, '..', 'dist', 'cli.js'));
+  
+  // Call the main function directly since we're bootstrapping
+  if (cliModule.main && typeof cliModule.main === 'function') {
+    await cliModule.main();
+  } else {
+    throw new Error('CLI module does not export a main function');
+  }
 } catch (error) {
   console.error('Error: Could not load hiliner CLI');
   console.error('Make sure to run "npm run build" first');

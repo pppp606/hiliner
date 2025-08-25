@@ -7,7 +7,8 @@ function FileViewerComponent({
   fileData, 
   scrollPosition = 0,
   cursorPosition = 0,
-  selectedLines
+  selectedLines,
+  theme = 'dark-plus'
 }: FileViewerProps): React.ReactElement {
   const { stdout } = useStdout();
 
@@ -18,7 +19,7 @@ function FileViewerComponent({
   if (!fileData || !fileData.lines) {
     return (
       <Box flexGrow={1} justifyContent="center" alignItems="center">
-        No file data available
+        <Text>No file data available</Text>
       </Box>
     );
   }
@@ -51,6 +52,7 @@ function FileViewerComponent({
         selectedLines={selectedLines}
         enableSyntaxHighlighting={true}
         language={fileData.metadata?.detectedLanguage}
+        theme={theme}
       />
     </Box>
   );

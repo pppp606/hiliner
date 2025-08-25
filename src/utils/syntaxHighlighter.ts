@@ -1,4 +1,5 @@
 import { createHighlighter, type Highlighter, bundledLanguages, bundledThemes, type BundledLanguage, type BundledTheme } from 'shiki';
+import chalk from 'chalk';
 
 // Global highlighter instance for reuse
 let highlighterInstance: Highlighter | null = null;
@@ -11,6 +12,22 @@ const COMMON_LANGUAGES: BundledLanguage[] = [
 
 // Background initialization flag
 let isBackgroundInitializationComplete = false;
+
+// Light themes that need color adjustment for dark terminals
+const LIGHT_THEMES = [
+  'github-light',
+  'github-light-default',
+  'light-plus',
+  'quiet-light',
+  'red',
+  'slack-theme',
+  'solarized-light',
+  'min-light',
+  'one-light',
+  'rose-pine-dawn',
+  'vitesse-light',
+  'catppuccin-latte'
+];
 
 /**
  * Initialize the Shiki highlighter with the specified theme
@@ -106,9 +123,10 @@ function scheduleBackgroundInit(): void {
 /**
  * Convert HTML with color styles to ANSI escape sequences for terminal display
  * @param html HTML string with inline styles
+ * @param theme Theme name for light theme detection
  * @returns String with ANSI escape sequences
  */
-function htmlToAnsi(html: string): string {
+function htmlToAnsi(html: string, theme: string = currentTheme): string {
   // Remove HTML structure tags but keep content
   let ansiString = html
     .replace(/<pre[^>]*>/g, '')
@@ -116,9 +134,13 @@ function htmlToAnsi(html: string): string {
     .replace(/<code[^>]*>/g, '')
     .replace(/<\/code>/g, '');
   
+  // Track if we need to maintain background color for light themes
+  const lightThemes = ['github-light', 'light-plus', 'quiet-light', 'solarized-light'];
+  const needsBackground = theme && lightThemes.includes(theme);
+  
   // Convert span tags with color styles to ANSI escape sequences
   ansiString = ansiString.replace(/<span[^>]*style="color:([^"]+)"[^>]*>([^<]*)<\/span>/g, (match, color, text) => {
-    return convertColorToAnsi(color, text);
+    return convertColorToAnsi(color, text, theme, needsBackground || false);
   });
   
   // Convert span tags with CSS classes to ANSI (fallback)
@@ -131,24 +153,41 @@ function htmlToAnsi(html: string): string {
   // Remove any remaining HTML tags
   ansiString = ansiString.replace(/<[^>]+>/g, '');
   
-  // Decode HTML entities
+  // Decode HTML entities (including numeric entities)
   ansiString = ansiString
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
+    .replace(/&#x26;/g, '&')  // Hexadecimal entity for &
+    .replace(/&#38;/g, '&')   // Decimal entity for &
     .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'");
+    .replace(/&#x22;/g, '"')  // Hexadecimal entity for "
+    .replace(/&#34;/g, '"')   // Decimal entity for "
+    .replace(/&#x27;/g, "'")  // Hexadecimal entity for '
+    .replace(/&#39;/g, "'")   // Decimal entity for '
+    .replace(/&apos;/g, "'");
   
   return ansiString;
+}
+
+/**
+ * Check if a theme is a light theme that needs color adjustment
+ * @param theme Theme name to check
+ * @returns True if theme is light and needs adjustment
+ */
+function isLightTheme(theme: string): boolean {
+  return LIGHT_THEMES.includes(theme);
 }
 
 /**
  * Convert a color value to appropriate ANSI escape sequence
  * @param color Color in CSS format (hex, rgb, etc.)
  * @param text Text to apply color to
+ * @param theme Theme name for light theme detection
+ * @param maintainBackground Whether to maintain background color after reset
  * @returns Text wrapped with ANSI color codes
  */
-function convertColorToAnsi(color: string, text: string): string {
+function convertColorToAnsi(color: string, text: string, theme: string = currentTheme, maintainBackground: boolean = false): string {
   // Color mapping from common syntax highlighting colors to ANSI
   const colorMap: Record<string, string> = {
     // Keywords (blue variants)
@@ -183,18 +222,19 @@ function convertColorToAnsi(color: string, text: string): string {
   
   // Try exact match first
   if (colorMap[normalizedColor]) {
-    return `${colorMap[normalizedColor]}${text}\x1b[0m`;
+    const basicColor = maintainBackground ? `${colorMap[normalizedColor]}\x1b[47m` : colorMap[normalizedColor];
+    return `${basicColor}${text}`;
   }
   
-  // Parse RGB values and convert to nearest ANSI color
+  // Parse RGB values and convert to ANSI color (background already included if needed)
   if (normalizedColor.startsWith('#')) {
-    const ansiColor = hexToAnsi(normalizedColor);
-    return `${ansiColor}${text}\x1b[0m`;
+    const ansiColor = hexToAnsi(normalizedColor, theme);
+    return `${ansiColor}${text}`;
   }
   
   if (normalizedColor.startsWith('rgb')) {
-    const ansiColor = rgbToAnsi(normalizedColor);
-    return `${ansiColor}${text}\x1b[0m`;
+    const ansiColor = rgbToAnsi(normalizedColor, theme);
+    return `${ansiColor}${text}`;
   }
   
   // Fallback: return text without color
@@ -204,24 +244,26 @@ function convertColorToAnsi(color: string, text: string): string {
 /**
  * Convert hex color to nearest ANSI color code
  * @param hex Hex color string (e.g., '#ff0000')
+ * @param theme Theme name for light theme detection
  * @returns ANSI escape sequence
  */
-function hexToAnsi(hex: string): string {
+function hexToAnsi(hex: string, theme: string = currentTheme): string {
   // Remove # and parse RGB values
   const cleanHex = hex.replace('#', '');
   const r = parseInt(cleanHex.slice(0, 2), 16);
   const g = parseInt(cleanHex.slice(2, 4), 16);
   const b = parseInt(cleanHex.slice(4, 6), 16);
   
-  return rgbToAnsiCode(r, g, b);
+  return rgbToAnsiCode(r, g, b, theme);
 }
 
 /**
  * Convert RGB color to nearest ANSI color code
  * @param rgb RGB color string (e.g., 'rgb(255, 0, 0)')
+ * @param theme Theme name for light theme detection
  * @returns ANSI escape sequence
  */
-function rgbToAnsi(rgb: string): string {
+function rgbToAnsi(rgb: string, theme: string = currentTheme): string {
   const matches = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (!matches) return '\x1b[37m'; // Default to white
   
@@ -229,29 +271,78 @@ function rgbToAnsi(rgb: string): string {
   const g = parseInt(matches[2]);
   const b = parseInt(matches[3]);
   
-  return rgbToAnsiCode(r, g, b);
+  return rgbToAnsiCode(r, g, b, theme);
 }
 
 /**
- * Convert RGB values to nearest ANSI color code
+ * Detect True Color support in the terminal
+ * @returns True if terminal supports 24-bit color
+ */
+function supportsTrueColor(): boolean {
+  // Check common environment variables for True Color support
+  const colorterm = process.env.COLORTERM;
+  if (colorterm === 'truecolor' || colorterm === '24bit') {
+    return true;
+  }
+  
+  // Check TERM variable for known True Color terminals
+  const term = process.env.TERM || '';
+  if (term.includes('256color') || term.includes('truecolor')) {
+    // 256color doesn't guarantee True Color, but modern terminals usually support it
+    return true;
+  }
+  
+  // Default to 256-color for safety
+  return false;
+}
+
+// Cache the result for performance
+const hasTrueColor = supportsTrueColor();
+
+/**
+ * Convert RGB values to ANSI color code
  * @param r Red value (0-255)
  * @param g Green value (0-255) 
  * @param b Blue value (0-255)
+ * @param theme Theme name for light theme detection
  * @returns ANSI escape sequence
  */
-function rgbToAnsiCode(r: number, g: number, b: number): string {
-  // Simple mapping to 16 basic ANSI colors based on dominant channel
+function rgbToAnsiCode(r: number, g: number, b: number, theme: string = currentTheme): string {
+  const isLight = isLightTheme(theme);
+  
+  // For very dark colors in light themes, ensure visibility
   const brightness = (r + g + b) / 3;
+  if (isLight && brightness < 64) {
+    // Brighten very dark colors for visibility on dark terminals
+    const factor = 2.5;
+    r = Math.min(255, Math.round(r * factor));
+    g = Math.min(255, Math.round(g * factor));
+    b = Math.min(255, Math.round(b * factor));
+  }
   
-  if (brightness < 64) return '\x1b[30m';      // Black
-  if (r > g && r > b && r > 128) return '\x1b[31m'; // Red
-  if (g > r && g > b && g > 128) return '\x1b[32m'; // Green
-  if (r > 128 && g > 128 && b < 128) return '\x1b[33m'; // Yellow
-  if (b > r && b > g && b > 128) return '\x1b[34m'; // Blue
-  if (r > 128 && b > 128 && g < 128) return '\x1b[35m'; // Magenta
-  if (g > 128 && b > 128 && r < 128) return '\x1b[36m'; // Cyan
-  
-  return '\x1b[37m'; // White (default)
+  if (hasTrueColor) {
+    // Use 24-bit True Color with proper background handling for light themes
+    if (isLight) {
+      // Separate foreground and background color codes
+      return `\x1b[38;2;${r};${g};${b}m\x1b[47m`;
+    } else {
+      // ESC[38;2;{r};{g};{b}m for foreground color only
+      return `\x1b[38;2;${r};${g};${b}m`;
+    }
+  } else {
+    // Fallback to 256-color mode for compatibility
+    const r6 = Math.round(r / 255 * 5);
+    const g6 = Math.round(g / 255 * 5);
+    const b6 = Math.round(b / 255 * 5);
+    const color256 = 16 + 36 * r6 + 6 * g6 + b6;
+    
+    if (isLight) {
+      // Separate 256-color foreground and background codes
+      return `\x1b[38;5;${color256}m\x1b[47m`;
+    } else {
+      return `\x1b[38;5;${color256}m`;
+    }
+  }
 }
 
 /**
@@ -311,8 +402,9 @@ export async function highlightCode(
       theme: (theme || currentTheme) as BundledTheme,
     });
     
+    
     // Convert HTML to ANSI escape sequences
-    const ansiCode = htmlToAnsi(html);
+    const ansiCode = htmlToAnsi(html, theme || currentTheme);
     
     return ansiCode;
     
@@ -356,6 +448,89 @@ export function isLanguageSupported(language: string): boolean {
 export function isThemeSupported(theme: string): boolean {
   return Object.keys(bundledThemes).includes(theme);
 }
+
+/**
+ * Interface for theme base colors
+ */
+export interface ThemeColors {
+  background: string;
+  foreground: string;
+  secondaryForeground: string;
+  accent: string;
+  selection: string;
+  lineNumber: string;
+  lineNumberActive: string;
+  comment: string;
+}
+
+/**
+ * Get base colors for a theme (simplified approach)
+ * @param theme Theme name
+ * @returns Theme color palette
+ */
+export async function getThemeColors(theme: string): Promise<ThemeColors> {
+  // Use a simplified approach with predefined color schemes for known themes
+  const isLight = isLightTheme(theme);
+  
+  // Define color schemes for popular themes
+  const themeSchemes: Record<string, Partial<ThemeColors>> = {
+    'github-light': {
+      background: '#ffffff',
+      foreground: '#24292f',
+      secondaryForeground: '#656d76',
+      accent: '#0969da',
+      selection: '#dbeafe',
+      lineNumber: '#656d76',
+      lineNumberActive: '#24292f',
+      comment: '#6e7781'
+    },
+    'github-dark': {
+      background: '#0d1117',
+      foreground: '#e6edf3',
+      secondaryForeground: '#8b949e',
+      accent: '#79c0ff',
+      selection: '#264f78',
+      lineNumber: '#8b949e',
+      lineNumberActive: '#e6edf3',
+      comment: '#8b949e'
+    },
+    'dark-plus': {
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      secondaryForeground: '#969696',
+      accent: '#007acc',
+      selection: '#264f78',
+      lineNumber: '#858585',
+      lineNumberActive: '#d4d4d4',
+      comment: '#6a9955'
+    },
+    'monokai': {
+      background: '#272822',
+      foreground: '#f8f8f2',
+      secondaryForeground: '#75715e',
+      accent: '#66d9ef',
+      selection: '#49483e',
+      lineNumber: '#90908a',
+      lineNumberActive: '#f8f8f2',
+      comment: '#75715e'
+    }
+  };
+
+  const scheme = themeSchemes[theme];
+  const fallback = {
+    background: isLight ? '#ffffff' : '#000000',
+    foreground: isLight ? '#000000' : '#ffffff',
+    secondaryForeground: isLight ? '#666666' : '#999999',
+    accent: isLight ? '#005CC5' : '#79B8FF',
+    selection: isLight ? '#e6f3ff' : '#264f78',
+    lineNumber: isLight ? '#999999' : '#666666',
+    lineNumberActive: isLight ? '#000000' : '#ffffff',
+    comment: isLight ? '#888888' : '#999999'
+  };
+
+  return { ...fallback, ...scheme };
+}
+
 
 /**
  * Cleanup highlighter resources

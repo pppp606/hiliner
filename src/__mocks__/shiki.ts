@@ -25,11 +25,26 @@ export type BundledTheme = keyof typeof bundledThemes;
 
 export interface Highlighter {
   codeToHtml(code: string, options: { lang: string; theme: string }): string;
+  getLoadedLanguages(): string[];
+  loadLanguage(...langs: string[]): Promise<void>;
   dispose?(): void;
 }
 
+// Track loaded languages for mock
+const mockLoadedLanguages = new Set(['javascript', 'typescript', 'python', 'json', 'html', 'css', 'bash']);
+
 // Mock highlighter that generates realistic HTML output
 const mockHighlighter: Highlighter = {
+  getLoadedLanguages(): string[] {
+    return Array.from(mockLoadedLanguages);
+  },
+  
+  async loadLanguage(...langs: string[]): Promise<void> {
+    // Add languages to loaded set
+    langs.forEach(lang => mockLoadedLanguages.add(lang));
+    // Simulate async loading
+    await new Promise(resolve => setTimeout(resolve, 1));
+  },
   codeToHtml: (code: string, options: { lang: string; theme: string }): string => {
     if (options.lang === 'text' || options.lang === 'plaintext') {
       return code;
