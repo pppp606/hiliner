@@ -40,7 +40,9 @@ export async function initializeHighlighter(theme: string = 'dark-plus', fastIni
   
   // If highlighter exists and theme hasn't changed, return existing instance
   if (highlighterInstance && currentTheme === theme) {
-    console.debug(`Syntax highlighter: Reused existing instance (${(performance.now() - startTime).toFixed(2)}ms)`);
+    if (process.env.DEBUG_MODE) {
+      console.debug(`Syntax highlighter: Reused existing instance (${(performance.now() - startTime).toFixed(2)}ms)`);
+    }
     // Start background loading if not complete
     if (fastInit && !isBackgroundInitializationComplete) {
       scheduleBackgroundInit();
@@ -54,7 +56,9 @@ export async function initializeHighlighter(theme: string = 'dark-plus', fastIni
     highlighterInstance.dispose?.();
     highlighterInstance = null;
     isBackgroundInitializationComplete = false;
-    console.debug(`Syntax highlighter: Cleanup took ${(performance.now() - cleanupStart).toFixed(2)}ms`);
+    if (process.env.DEBUG_MODE) {
+      console.debug(`Syntax highlighter: Cleanup took ${(performance.now() - cleanupStart).toFixed(2)}ms)`);
+    }
   }
   
   try {
@@ -62,7 +66,9 @@ export async function initializeHighlighter(theme: string = 'dark-plus', fastIni
     const themeValidationStart = performance.now();
     const availableThemes = Object.keys(bundledThemes) as BundledTheme[];
     const selectedTheme = availableThemes.includes(theme as BundledTheme) ? theme : 'dark-plus';
-    console.debug(`Syntax highlighter: Theme validation took ${(performance.now() - themeValidationStart).toFixed(2)}ms`);
+    if (process.env.DEBUG_MODE) {
+      console.debug(`Syntax highlighter: Theme validation took ${(performance.now() - themeValidationStart).toFixed(2)}ms)`);
+    }
     
     // Choose languages to load based on initialization mode
     const initStart = performance.now();
@@ -72,7 +78,9 @@ export async function initializeHighlighter(theme: string = 'dark-plus', fastIni
       themes: [selectedTheme as BundledTheme],
       langs: languagesToLoad,
     });
-    console.debug(`Syntax highlighter: Core initialization with ${languagesToLoad.length} languages took ${(performance.now() - initStart).toFixed(2)}ms`);
+    if (process.env.DEBUG_MODE) {
+      console.debug(`Syntax highlighter: Core initialization with ${languagesToLoad.length} languages took ${(performance.now() - initStart).toFixed(2)}ms)`);
+    }
     
     currentTheme = selectedTheme;
     
@@ -83,7 +91,9 @@ export async function initializeHighlighter(theme: string = 'dark-plus', fastIni
       isBackgroundInitializationComplete = true;
     }
     
-    console.debug(`Syntax highlighter: Total initialization time ${(performance.now() - startTime).toFixed(2)}ms`);
+    if (process.env.DEBUG_MODE) {
+      console.debug(`Syntax highlighter: Total initialization time ${(performance.now() - startTime).toFixed(2)}ms)`);
+    }
     return highlighterInstance!; // We just created it, so it's not null
   } catch (error) {
     console.error('Failed to initialize syntax highlighter:', error);
@@ -101,7 +111,9 @@ function scheduleBackgroundInit(): void {
   setTimeout(async () => {
     try {
       const bgStartTime = performance.now();
-      console.debug('Syntax highlighter: Starting background initialization of all languages...');
+      if (process.env.DEBUG_MODE) {
+        console.debug('Syntax highlighter: Starting background initialization of all languages...');
+      }
       
       // Get all languages that aren't already loaded
       const allLanguages = Object.keys(bundledLanguages) as BundledLanguage[];
@@ -110,7 +122,9 @@ function scheduleBackgroundInit(): void {
       if (remainingLanguages.length > 0) {
         // Load remaining languages
         await highlighterInstance?.loadLanguage(...remainingLanguages);
-        console.debug(`Syntax highlighter: Background loaded ${remainingLanguages.length} additional languages in ${(performance.now() - bgStartTime).toFixed(2)}ms`);
+        if (process.env.DEBUG_MODE) {
+          console.debug(`Syntax highlighter: Background loaded ${remainingLanguages.length} additional languages in ${(performance.now() - bgStartTime).toFixed(2)}ms)`);
+        }
       }
       
       isBackgroundInitializationComplete = true;
@@ -387,7 +401,9 @@ export async function highlightCode(
     // Check if the specific language is loaded, load it if needed
     const loadedLanguages = highlighter.getLoadedLanguages();
     if (!loadedLanguages.includes(language as BundledLanguage)) {
-      console.debug(`Syntax highlighter: Loading language '${language}' on demand`);
+      if (process.env.DEBUG_MODE) {
+        console.debug(`Syntax highlighter: Loading language '${language}' on demand`);
+      }
       try {
         await highlighter.loadLanguage(language as BundledLanguage);
       } catch (error) {

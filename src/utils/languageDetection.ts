@@ -261,7 +261,9 @@ export async function detectLanguage(filename: string, content: string): Promise
     const cacheKey = generateCacheKey(filename, content);
     const cachedResult = languageCache.get(cacheKey);
     if (cachedResult) {
-      console.debug(`Language detection: Cache hit for '${filename}' (${(performance.now() - startTime).toFixed(2)}ms)`);
+      if (process.env.DEBUG_MODE) {
+        console.debug(`Language detection: Cache hit for '${filename}' (${(performance.now() - startTime).toFixed(2)}ms)`);
+      }
       return cachedResult;
     }
     
@@ -272,7 +274,9 @@ export async function detectLanguage(filename: string, content: string): Promise
     const shebangLanguage = detectFromShebang(content);
     if (shebangLanguage) {
       detectedLanguage = shebangLanguage;
-      console.debug(`Language detection: Shebang detection (${(performance.now() - shebangStart).toFixed(2)}ms)`);
+      if (process.env.DEBUG_MODE) {
+        console.debug(`Language detection: Shebang detection (${(performance.now() - shebangStart).toFixed(2)}ms)`);
+      }
     }
     
     // 2. Check file extension (second priority)
@@ -281,7 +285,9 @@ export async function detectLanguage(filename: string, content: string): Promise
       const extensionLanguage = detectFromExtension(filename);
       if (extensionLanguage && content.trim()) {
         detectedLanguage = extensionLanguage;
-        console.debug(`Language detection: Extension detection (${(performance.now() - extensionStart).toFixed(2)}ms)`);
+        if (process.env.DEBUG_MODE) {
+          console.debug(`Language detection: Extension detection (${(performance.now() - extensionStart).toFixed(2)}ms)`);
+        }
       }
     }
     
@@ -291,7 +297,9 @@ export async function detectLanguage(filename: string, content: string): Promise
       const contentLanguage = await detectFromContent(content);
       if (contentLanguage) {
         detectedLanguage = contentLanguage;
-        console.debug(`Language detection: Content analysis (${(performance.now() - contentStart).toFixed(2)}ms)`);
+        if (process.env.DEBUG_MODE) {
+          console.debug(`Language detection: Content analysis (${(performance.now() - contentStart).toFixed(2)}ms)`);
+        }
       }
     }
     
@@ -302,7 +310,9 @@ export async function detectLanguage(filename: string, content: string): Promise
     languageCache.set(cacheKey, finalLanguage);
     maintainCacheSize();
     
-    console.debug(`Language detection: Total time for '${filename}': ${(performance.now() - startTime).toFixed(2)}ms -> ${finalLanguage}`);
+    if (process.env.DEBUG_MODE) {
+      console.debug(`Language detection: Total time for '${filename}': ${(performance.now() - startTime).toFixed(2)}ms -> ${finalLanguage}`);
+    }
     return finalLanguage;
     
   } catch (error) {

@@ -1,7 +1,6 @@
 import React, { memo, useEffect, useState, useRef } from 'react';
 import { Box, Text } from 'ink';
 import chalk from 'chalk';
-import { appendFileSync } from 'fs';
 import type { FileContentProps } from '../types.js';
 import { chalkColors, getChalkColor } from '../utils/colors.js';
 import { useSyntaxHighlighting } from '../hooks/useSyntaxHighlighting.js';
