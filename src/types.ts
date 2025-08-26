@@ -332,3 +332,18 @@ export interface StatusBarProps {
   /** Current syntax highlighting theme */
   syntaxTheme?: string;
 }
+
+// Re-export action configuration types for convenience
+export type {
+  ActionConfig,
+  ActionConfigMetadata,
+  ActionConfigEnvironment,
+  ActionDefinition,
+  ActionWhenConditions,
+  CommandVariables,
+  ComplexCommand,
+  ActionExecutionContext,
+  ActionExecutionResult,
+  ActionHandler,
+  KeyBindingValidation
+} from './types/actionConfig.js';
