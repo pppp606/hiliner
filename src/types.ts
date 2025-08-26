@@ -14,6 +14,8 @@ export interface CLIArgs {
   file?: string;
   /** Syntax highlighting theme name (default: 'dark-plus') */
   theme?: string;
+  /** Path to custom configuration file */
+  config?: string;
   /** Show help */
   help?: boolean;
   /** Show version */

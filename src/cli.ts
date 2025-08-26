@@ -45,7 +45,8 @@ Arguments:
   file              Input file to view
 
 Options:
-  -t, --theme <name>      Syntax highlighting theme (default: dark-plus)
+  -c, --config <path>    Path to custom configuration file
+  -t, --theme <name>     Syntax highlighting theme (default: dark-plus)
   -h, --help             Show this help message
   -v, --version          Show version number
   --debug                Enable debug mode
@@ -66,6 +67,7 @@ Interactive Mode:
 Examples:
   hiliner file.js                     # Interactive viewer with default theme
   hiliner --theme github-light file.js # Interactive viewer with GitHub Light theme
+  hiliner --config custom.json file.js # Interactive viewer with custom config
   hiliner --theme monokai file.js     # Interactive viewer with Monokai theme
 `);
 }
@@ -90,6 +92,7 @@ export function parseCliArgs(): CLIArgs {
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
         theme: { type: 'string', short: 't' },
+        config: { type: 'string', short: 'c' },
         debug: { type: 'boolean' },
       },
     });
@@ -101,6 +104,7 @@ export function parseCliArgs(): CLIArgs {
       version: values.version,
       file,
       theme: values.theme,
+      config: values.config,
       debug: values.debug,
     };
   } catch (error) {

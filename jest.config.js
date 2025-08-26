@@ -47,6 +47,8 @@ export default {
         target: 'ES2020',
         module: 'CommonJS',
         lib: ['ES2020', 'DOM'],
+        strict: false,
+        strictNullChecks: false
       }
     }]
   },

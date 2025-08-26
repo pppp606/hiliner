@@ -1,0 +1,12 @@
+{
+  "$schema": "../src/schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "simple-copy",
+      "description": "Copy current line to clipboard",
+      "key": "c",
+      "script": "pbcopy"
+    }
+  ]
+}

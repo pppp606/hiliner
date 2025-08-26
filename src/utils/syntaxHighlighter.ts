@@ -1,5 +1,4 @@
 import { createHighlighter, type Highlighter, bundledLanguages, bundledThemes, type BundledLanguage, type BundledTheme } from 'shiki';
-import chalk from 'chalk';
 
 // Global highlighter instance for reuse
 let highlighterInstance: Highlighter | null = null;

@@ -1,0 +1,459 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hiliner.dev/schemas/actionConfig.schema.json",
+  "title": "Hiliner Action Configuration Schema",
+  "description": "JSON Schema for configuring custom actions and key bindings in Hiliner file viewer",
+  "type": "object",
+  "version": "1.0.0",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference URL"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration schema version (semver format)",
+      "default": "1.0.0"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Configuration metadata and information",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for this configuration set",
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this action configuration",
+          "maxLength": 500
+        },
+        "author": {
+          "type": "string",
+          "description": "Author of this configuration",
+          "maxLength": 100
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (ISO 8601 format)"
+        },
+        "modified": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modification timestamp (ISO 8601 format)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "description": "Array of custom action definitions",
+      "items": {
+        "$ref": "#/$defs/action"
+      },
+      "uniqueItems": true
+    },
+    "keyBindings": {
+      "type": "object",
+      "description": "Global key binding overrides (maps keys to action IDs)",
+      "patternProperties": {
+        "^[a-zA-Z0-9!@#$%^&*()_+\\-=\\[\\]{};':\",./<>?`~]$": {
+          "type": "string",
+          "description": "Action ID to execute when this key is pressed",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "description": "Environment variables and global configuration",
+      "properties": {
+        "variables": {
+          "type": "object",
+          "description": "Custom environment variables for action scripts",
+          "patternProperties": {
+            "^[A-Z_][A-Z0-9_]*$": {
+              "type": "string",
+              "description": "Environment variable value"
+            }
+          },
+          "additionalProperties": false
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Default timeout for external commands (milliseconds)",
+          "minimum": 100,
+          "maximum": 300000,
+          "default": 5000
+        },
+        "shell": {
+          "type": "string",
+          "description": "Shell to use for external commands",
+          "enum": ["bash", "sh", "zsh", "fish", "cmd", "powershell"],
+          "default": "bash"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["actions"],
+  "additionalProperties": false,
+  "$defs": {
+    "action": {
+      "type": "object",
+      "description": "Single action definition with commands and metadata",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this action",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for this action",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of what this action does",
+          "maxLength": 500
+        },
+        "key": {
+          "type": "string",
+          "description": "Primary key binding for this action (single character)",
+          "pattern": "^[a-zA-Z0-9!@#$%^&*()_+\\-=\\[\\]{};':\",./<>?`~]$"
+        },
+        "alternativeKeys": {
+          "type": "array",
+          "description": "Alternative key bindings for this action",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9!@#$%^&*()_+\\-=\\[\\]{};':\",./<>?`~]$"
+          },
+          "uniqueItems": true,
+          "maxItems": 5
+        },
+        "script": {
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Simple command to execute",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "$ref": "#/$defs/complexCommand"
+            }
+          ]
+        },
+        "when": {
+          "type": "object",
+          "description": "Conditions under which this action is available",
+          "properties": {
+            "fileTypes": {
+              "type": "array",
+              "description": "File extensions or types this action applies to",
+              "items": {
+                "type": "string",
+                "pattern": "^\\.[a-zA-Z0-9]+$|^[a-zA-Z0-9_-]+$"
+              }
+            },
+            "hasSelection": {
+              "type": "boolean",
+              "description": "Whether text must be selected for this action to be available"
+            },
+            "lineCount": {
+              "type": "object",
+              "description": "File line count requirements",
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            "mode": {
+              "type": "string",
+              "description": "Application mode this action applies to",
+              "enum": ["interactive", "static", "any"],
+              "default": "any"
+            }
+          },
+          "additionalProperties": false
+        },
+        "dangerous": {
+          "type": "boolean",
+          "description": "Whether this action performs potentially harmful operations",
+          "default": false
+        },
+        "confirmPrompt": {
+          "type": "string",
+          "description": "Confirmation message to show before executing (for dangerous actions)",
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "description": "Category for organizing actions in help/menus",
+          "enum": ["navigation", "selection", "editing", "file", "view", "search", "custom"],
+          "default": "custom"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Execution priority (higher numbers execute first)",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 50
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this action is enabled",
+          "default": true
+        }
+      },
+      "required": ["id", "key", "script", "description"],
+      "additionalProperties": false
+    },
+    "complexCommand": {
+      "type": "object",
+      "description": "Complex command configuration with multiple execution options",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of command to execute",
+          "enum": ["builtin", "external", "script", "sequence"]
+        },
+        "command": {
+          "type": "string",
+          "description": "Primary command to execute",
+          "minLength": 1
+        },
+        "args": {
+          "type": "array",
+          "description": "Command arguments",
+          "items": {
+            "type": "string"
+          }
+        },
+        "builtin": {
+          "type": "string",
+          "description": "Built-in hiliner function to execute",
+          "enum": [
+            "quit",
+            "toggleSelection", 
+            "selectAll",
+            "clearSelection",
+            "scrollUp",
+            "scrollDown",
+            "goToStart",
+            "goToEnd",
+            "pageUp",
+            "pageDown",
+            "copySelection",
+            "saveToFile",
+            "toggleLineNumbers",
+            "changeTheme",
+            "showHelp",
+            "reload"
+          ]
+        },
+        "environment": {
+          "type": "object",
+          "description": "Environment variables for this specific command",
+          "patternProperties": {
+            "^[A-Z_][A-Z0-9_]*$": {
+              "type": "string"
+            }
+          }
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Working directory for external commands"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout for this specific command (milliseconds)",
+          "minimum": 100,
+          "maximum": 300000
+        },
+        "sequence": {
+          "type": "array",
+          "description": "Sequence of commands to execute in order",
+          "items": {
+            "$ref": "#/$defs/complexCommand"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "onSuccess": {
+          "type": "string",
+          "description": "Command to run if this command succeeds"
+        },
+        "onFailure": {
+          "type": "string", 
+          "description": "Command to run if this command fails"
+        },
+        "captureOutput": {
+          "type": "boolean",
+          "description": "Whether to capture and display command output",
+          "default": true
+        },
+        "silent": {
+          "type": "boolean",
+          "description": "Whether to suppress all output from this command",
+          "default": false
+        },
+        "variables": {
+          "type": "object",
+          "description": "Variable substitutions available in this command",
+          "properties": {
+            "currentFile": {
+              "type": "boolean",
+              "description": "Substitute {{currentFile}} with current file path",
+              "default": true
+            },
+            "currentLine": {
+              "type": "boolean",
+              "description": "Substitute {{currentLine}} with current line number",
+              "default": true
+            },
+            "selectedLines": {
+              "type": "boolean",
+              "description": "Substitute {{selectedLines}} with selected line numbers",
+              "default": true
+            },
+            "selectedText": {
+              "type": "boolean",
+              "description": "Substitute {{selectedText}} with selected text content",
+              "default": true
+            },
+            "fileName": {
+              "type": "boolean",
+              "description": "Substitute {{fileName}} with file name only",
+              "default": true
+            },
+            "fileDir": {
+              "type": "boolean",
+              "description": "Substitute {{fileDir}} with file directory",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "type": { "const": "builtin" }
+          },
+          "required": ["type", "builtin"]
+        },
+        {
+          "properties": {
+            "type": { "const": "external" }
+          },
+          "required": ["type", "command"]
+        },
+        {
+          "properties": {
+            "type": { "const": "script" }
+          },
+          "required": ["type", "command"]
+        },
+        {
+          "properties": {
+            "type": { "const": "sequence" }
+          },
+          "required": ["type", "sequence"]
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "$schema": "https://hiliner.dev/schemas/actionConfig.schema.json",
+      "version": "1.0.0",
+      "metadata": {
+        "name": "My Custom Actions",
+        "description": "Personal action configuration for Hiliner",
+        "author": "User",
+        "created": "2024-01-01T00:00:00Z"
+      },
+      "actions": [
+        {
+          "id": "copy-to-clipboard",
+          "name": "Copy to Clipboard", 
+          "description": "Copy current line or selection to system clipboard",
+          "key": "c",
+          "script": {
+            "type": "external",
+            "command": "pbcopy",
+            "variables": {
+              "selectedText": true,
+              "currentLine": true
+            }
+          },
+          "category": "editing"
+        },
+        {
+          "id": "open-in-editor",
+          "name": "Open in VS Code",
+          "description": "Open current file in VS Code at current line",
+          "key": "e",
+          "script": "code {{currentFile}}:{{currentLine}}",
+          "category": "file"
+        },
+        {
+          "id": "git-blame",
+          "name": "Git Blame",
+          "description": "Show git blame for current line",
+          "key": "B",
+          "script": {
+            "type": "external",
+            "command": "git",
+            "args": ["blame", "-L", "{{currentLine}},{{currentLine}}", "{{currentFile}}"],
+            "workingDirectory": "{{fileDir}}"
+          },
+          "when": {
+            "fileTypes": [".js", ".ts", ".py", ".go", ".rs", ".java"]
+          },
+          "category": "file"
+        },
+        {
+          "id": "dangerous-delete",
+          "name": "Delete File",
+          "description": "Permanently delete the current file",
+          "key": "X",
+          "script": "rm {{currentFile}}",
+          "dangerous": true,
+          "confirmPrompt": "Are you sure you want to permanently delete this file?",
+          "category": "file"
+        }
+      ],
+      "keyBindings": {
+        "?": "show-help",
+        "r": "reload"
+      },
+      "environment": {
+        "variables": {
+          "HILINER_CUSTOM": "true",
+          "EDITOR": "code"
+        },
+        "timeout": 10000,
+        "shell": "bash"
+      }
+    }
+  ]
+}
