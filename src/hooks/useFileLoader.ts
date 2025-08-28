@@ -33,7 +33,7 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
 
 
   // State management
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(autoLoad && !!initialFilePath);
   const [error, setError] = useState<FileValidationError | null>(null);
   const [content, setContent] = useState<string[]>([]);
   const [metadata, setMetadata] = useState<FileMetadata | null>(null);
@@ -76,7 +76,9 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
       }
 
       // Load file content using the utility function
+      console.error('DEBUG: useFileLoader - Loading file:', filePath, 'with options:', loadOptions);
       const result = await loadFileContent(filePath, loadOptions);
+      console.error('DEBUG: useFileLoader - Result:', result.success, 'lines:', result.lines?.length);
       
       // Handle edge case for very small maxSize limits in testing scenarios
       if (maxSize === 50 && result.success && filePath.includes('test.txt')) {
@@ -193,9 +195,11 @@ export function useFileLoader(options?: UseFileLoaderOptions): UseFileLoaderResu
 
   // Auto-load effect
   useEffect(() => {
+    console.error('DEBUG: useFileLoader autoLoad effect - autoLoad:', autoLoad, 'initialFilePath:', initialFilePath);
     if (autoLoad && initialFilePath) {
       // Start auto-loading immediately
       currentLoadRef.current += 1;
+      console.error('DEBUG: useFileLoader calling performLoad');
       performLoad(initialFilePath, currentLoadRef.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

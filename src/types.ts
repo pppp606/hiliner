@@ -20,6 +20,8 @@ export interface CLIArgs {
   help?: boolean;
   /** Show version */
   version?: boolean;
+  /** Show complete keymap */
+  keymap?: boolean;
   /** Enable debug mode */
   debug?: boolean;
 }
@@ -173,6 +175,8 @@ export interface AppProps {
   filePath?: string;
   /** Syntax highlighting theme name (default: 'dark-plus') */
   theme?: string;
+  /** Path to custom action configuration file */
+  configPath?: string;
 }
 
 /**

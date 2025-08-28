@@ -13,6 +13,7 @@ import React from 'react';
 import { App } from './components/App.js';
 import { type CLIArgs } from './types.js';
 import { validateTheme, getDefaultTheme } from './utils/themeValidation.js';
+import { createActionRegistry } from './utils/actionRegistry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,6 +28,32 @@ const TERMINAL_SEQUENCES = {
   ENTER_ALT_SCREEN: '\x1B[?1049h',
   EXIT_ALT_SCREEN: '\x1B[?1049l'
 } as const;
+
+/**
+ * Show complete keymap (built-in + custom actions)
+ */
+async function showKeymap(configPath?: string): Promise<void> {
+  try {
+    console.log('🔄 Loading keymap...\n');
+    
+    // Create action registry to get complete keymap
+    const registry = await createActionRegistry(configPath);
+    const keymapHelp = registry.getFormattedKeymapHelp();
+    
+    console.log(keymapHelp);
+    
+    // Show additional examples
+    console.log('\n📚 USAGE EXAMPLES:');
+    console.log('   hiliner file.js              # Interactive mode');
+    console.log('   hiliner --config my.json file.js  # With custom actions');
+    console.log('   hiliner --keymap             # Show this keymap');
+    console.log('\n💡 TIP: Press ? in interactive mode for basic help');
+    
+  } catch (error) {
+    console.error('❌ Error loading keymap:', error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+}
 
 /**
  * Show help message
@@ -49,6 +76,7 @@ Options:
   -t, --theme <name>     Syntax highlighting theme (default: dark-plus)
   -h, --help             Show this help message
   -v, --version          Show version number
+  -k, --keymap           Show complete keymap (built-in + custom actions)
   --debug                Enable debug mode
 
 Interactive Mode:
@@ -91,6 +119,7 @@ export function parseCliArgs(): CLIArgs {
       options: {
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
+        keymap: { type: 'boolean', short: 'k' },
         theme: { type: 'string', short: 't' },
         config: { type: 'string', short: 'c' },
         debug: { type: 'boolean' },
@@ -102,6 +131,7 @@ export function parseCliArgs(): CLIArgs {
     return {
       help: values.help,
       version: values.version,
+      keymap: values.keymap,
       file,
       theme: values.theme,
       config: values.config,
@@ -138,6 +168,12 @@ export async function main(): Promise<void> {
     return;
   }
 
+  // Show keymap
+  if (args.keymap) {
+    await showKeymap(args.config);
+    return;
+  }
+
   // Validate file argument
   if (!args.file) {
     console.error('Use --help for usage information');
@@ -163,7 +199,8 @@ export async function main(): Promise<void> {
     
     const { clear } = render(React.createElement(App, { 
       filePath: resolve(args.file),
-      theme: validatedTheme
+      theme: validatedTheme,
+      configPath: args.config ? resolve(args.config) : undefined
     }));
     
     // Handle graceful exit

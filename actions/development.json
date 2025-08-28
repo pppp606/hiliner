@@ -1,0 +1,20 @@
+{
+  "$schema": "../src/schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "open-in-editor",
+      "name": "Open in Editor",
+      "description": "Open current file in VS Code",
+      "key": "e",
+      "script": "code \"$FILE_PATH\" && echo \"Opening $FILE_PATH in VS Code\""
+    },
+    {
+      "id": "show-file-info",
+      "name": "Show File Info",
+      "description": "Display detailed file information",
+      "key": "d",
+      "script": "echo \"File: $FILE_PATH\\nLanguage: $LANGUAGE\\nTotal Lines: $TOTAL_LINES\\nCurrent Line: $CURRENT_LINE\""
+    }
+  ]
+}

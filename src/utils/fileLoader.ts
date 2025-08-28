@@ -177,6 +177,7 @@ export async function loadFileContent(
   filePath: string,
   options?: FileLoadOptions
 ): Promise<FileLoadResult> {
+  console.error('DEBUG: loadFileContent called with:', filePath);
   const defaultOptions: Required<FileLoadOptions> = {
     maxSize: 10 * 1024 * 1024, // 10MB
     encoding: 'utf8',

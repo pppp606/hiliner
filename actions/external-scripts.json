@@ -1,0 +1,27 @@
+{
+  "$schema": "../src/schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "external-hello",
+      "name": "External Hello Script",
+      "description": "Run external JavaScript file",
+      "key": "x",
+      "script": "scripts/javascript/hello.js"
+    },
+    {
+      "id": "file-analysis",
+      "name": "File Analysis Script", 
+      "description": "Analyze current file with external script",
+      "key": "z",
+      "script": "scripts/javascript/file-analysis.js"
+    },
+    {
+      "id": "complex-analysis",
+      "name": "Complex File Analysis",
+      "description": "Complex analysis with file system access",
+      "key": "w",
+      "script": "scripts/javascript/complex-example.js"
+    }
+  ]
+}

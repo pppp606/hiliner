@@ -21,6 +21,7 @@ import type {
   ActionExecutionContext,
   ActionConfigEnvironment
 } from '../types/actionConfig.js';
+import { generateKeymapHelp, formatKeymapHelp, generateKeymapSummary, type KeymapHelpResult } from './keymapHelp.js';
 
 /**
  * Error types for Action Registry operations
@@ -82,7 +83,6 @@ const BUILTIN_ACTIONS: ActionDefinition[] = [
     id: 'pageUp',
     description: 'Scroll up one page',
     key: 'b',
-    alternativeKeys: ['pageup'],
     script: { type: 'builtin', builtin: 'pageUp' },
     category: 'navigation'
   },
@@ -90,7 +90,6 @@ const BUILTIN_ACTIONS: ActionDefinition[] = [
     id: 'pageDown',
     description: 'Scroll down one page',
     key: 'f',
-    alternativeKeys: ['pagedown'],
     script: { type: 'builtin', builtin: 'pageDown' },
     category: 'navigation'
   },
@@ -151,24 +150,90 @@ const BUILTIN_ACTIONS: ActionDefinition[] = [
 const CRITICAL_BUILTIN_IDS = new Set(['quit', 'showHelp']);
 
 /**
+ * Load all action configuration files from the actions directory and default paths
+ */
+async function loadAllActionConfigs(): Promise<{configs: ActionConfig[], sources: Record<string, string>}> {
+  const configs: ActionConfig[] = [];
+  const sources: Record<string, string> = {};
+  
+  // First, try to load from actions directory
+  try {
+    const actionsDir = path.resolve(process.cwd(), 'actions');
+    const files = await fs.readdir(actionsDir);
+    
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const filePath = path.join(actionsDir, file);
+        console.error('DEBUG: Loading action config from actions directory:', filePath);
+        const config = await loadActionConfig(filePath);
+        if (config) {
+          configs.push(config);
+          // Track source for each action
+          if (config.actions) {
+            for (const action of config.actions) {
+              sources[action.id] = file; // Use filename for display
+            }
+          }
+          console.error('DEBUG: Loaded config from:', filePath, 'with', config.actions?.length || 0, 'actions');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('DEBUG: Actions directory not found or not readable, using default paths');
+  }
+  
+  // If no configs loaded from actions directory, fall back to default paths
+  if (configs.length === 0) {
+    const configPaths = resolveConfigPath();
+    console.error('DEBUG: Using default config paths:', configPaths);
+    for (const configPath of configPaths) {
+      const config = await loadActionConfig(configPath);
+      if (config) {
+        configs.push(config);
+        // Track source for each action
+        if (config.actions) {
+          for (const action of config.actions) {
+            sources[action.id] = path.basename(configPath);
+          }
+        }
+        console.error('DEBUG: Loaded config from:', configPath, 'with', config.actions?.length || 0, 'actions');
+      }
+    }
+  }
+  
+  return { configs, sources };
+}
+
+/**
  * Main Action Registry class for managing actions and key bindings
  */
 export class ActionRegistry {
   private actions = new Map<string, ActionDefinition>();
   private keyBindings = new Map<string, string>();
   private builtinActions: ActionDefinition[] = [];
+  private customActions: ActionDefinition[] = [];
+  private configSources = new Map<string, string>(); // Maps action ID to source file
   private environmentContext: ActionConfigEnvironment = {};
 
   constructor(
     customActions: ActionDefinition[] = [],
     keyBindings: Record<string, string> = {},
-    environment: ActionConfigEnvironment = {}
+    environment: ActionConfigEnvironment = {},
+    configSources?: Record<string, string>
   ) {
     // Register built-in actions first
     this.builtinActions = [...BUILTIN_ACTIONS];
     for (const action of this.builtinActions) {
       this.actions.set(action.id, action);
       this.registerKeyBindings(action);
+    }
+
+    // Store custom actions and their sources
+    this.customActions = [...customActions];
+    if (configSources) {
+      for (const [actionId, source] of Object.entries(configSources)) {
+        this.configSources.set(actionId, source);
+      }
     }
 
     // Validate that custom actions don't override critical built-ins
@@ -221,6 +286,35 @@ export class ActionRegistry {
    */
   public getActionById(id: string): ActionDefinition | undefined {
     return this.actions.get(id);
+  }
+
+  /**
+   * Generate comprehensive keymap help
+   */
+  public generateKeymapHelp(): KeymapHelpResult {
+    // Create config sources map for help display
+    const configSourcesObj: Record<string, string> = {};
+    for (const [actionId, source] of this.configSources.entries()) {
+      configSourcesObj[actionId] = source;
+    }
+
+    return generateKeymapHelp(this.customActions, configSourcesObj);
+  }
+
+  /**
+   * Get formatted keymap help as string
+   */
+  public getFormattedKeymapHelp(): string {
+    const helpResult = this.generateKeymapHelp();
+    return formatKeymapHelp(helpResult);
+  }
+
+  /**
+   * Get keymap summary for status display
+   */
+  public getKeymapSummary(): string {
+    const helpResult = this.generateKeymapHelp();
+    return generateKeymapSummary(helpResult);
   }
 
   /**
@@ -316,35 +410,50 @@ export class ActionRegistry {
 /**
  * Create a new Action Registry instance with configuration loading
  */
-export async function createActionRegistry(): Promise<ActionRegistry> {
+export async function createActionRegistry(customConfigPath?: string): Promise<ActionRegistry> {
   try {
-    const configPaths = resolveConfigPath();
+    console.error('DEBUG: createActionRegistry called with customConfigPath:', customConfigPath);
+    
     const configs: ActionConfig[] = [];
-
-    // Load configuration files in priority order
-    for (const configPath of configPaths) {
-      const config = await loadActionConfig(configPath);
+    
+    // If custom config path is provided, load it exclusively
+    if (customConfigPath) {
+      const config = await loadActionConfig(customConfigPath);
       if (config) {
         configs.push(config);
+        console.error('DEBUG: Loaded custom config from:', customConfigPath, 'with', config.actions?.length || 0, 'actions');
+      } else {
+        console.error('DEBUG: Failed to load custom config from:', customConfigPath);
       }
+    } else {
+      // Load all configs from actions directory and default paths
+      const { configs: allConfigs, sources: configSources } = await loadAllActionConfigs();
+      configs.push(...allConfigs);
+      
+      // Create ActionRegistry with source information
+      const mergedConfig = mergeConfigurations(configs);
+      const conflictCheck = detectKeyBindingConflicts(mergedConfig.actions, BUILTIN_ACTIONS);
+      
+      if (!conflictCheck.valid) {
+        throw new ActionRegistryError(
+          ActionRegistryErrorType.KEY_BINDING_CONFLICT,
+          `Key binding conflict detected: ${conflictCheck.error}`,
+          { conflicts: conflictCheck.conflicts }
+        );
+      }
+
+      return new ActionRegistry(
+        mergedConfig.actions,
+        mergedConfig.keyBindings || {},
+        mergedConfig.environment || {},
+        configSources
+      );
     }
 
-    // Merge configurations (earlier configs take priority)
+    // Handle custom config path case
     const mergedConfig = mergeConfigurations(configs);
-
-    // Skip schema validation in createActionRegistry for GREEN phase
-    // TODO: Fix schema loading and re-enable in later phase
-    // const validation = await validateActionConfig(mergedConfig);
-    // if (!validation.valid) {
-    //   throw new ActionRegistryError(
-    //     ActionRegistryErrorType.SCHEMA_VALIDATION_FAILED,
-    //     `Configuration validation failed: ${validation.errors.join(', ')}`,
-    //     { errors: validation.errors }
-    //   );
-    // }
-
-    // Detect key binding conflicts
     const conflictCheck = detectKeyBindingConflicts(mergedConfig.actions, BUILTIN_ACTIONS);
+    
     if (!conflictCheck.valid) {
       throw new ActionRegistryError(
         ActionRegistryErrorType.KEY_BINDING_CONFLICT,
@@ -353,7 +462,7 @@ export async function createActionRegistry(): Promise<ActionRegistry> {
       );
     }
 
-    // Create and return registry
+    // Create and return registry instance (without source info for custom path case)
     return new ActionRegistry(
       mergedConfig.actions,
       mergedConfig.keyBindings || {},

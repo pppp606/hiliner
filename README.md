@@ -63,29 +63,41 @@ hiliner --theme dracula path/to/file.txt
 
 ## Keyboard Shortcuts
 
-### Navigation
+### Built-in Navigation
 | Key | Action |
 |-----|--------|
-| `↑` `↓` | Move cursor up/down one line |
-| `←` `→` | Scroll horizontally |
-| `Space` `Page Down` | Page down (viewport height - 1) |
-| `b` `Page Up` | Page up (viewport height - 1) |
+| `↑` `↓` `j` `k` | Move cursor up/down one line |
+| `b` | Page up (viewport height - 1) |
+| `f` | Page down (viewport height - 1) |
 | `g` | Go to start of file |
 | `G` | Go to end of file |
+| `q` | Quit application |
 
-### Multi-Selection
+### Built-in Multi-Selection
 | Key | Action |
 |-----|--------|
 | `Tab` | Toggle selection of current line |
+| `Shift+Tab` | Range selection from previously selected line |
 | `a` | Select all visible lines (within current viewport) |
-| `d` | Deselect all lines |
-| `Escape` | Clear all selections |
+| `c` | Clear all selections |
 
-### Application Control
+### Built-in File Operations  
 | Key | Action |
 |-----|--------|
-| `q` | Quit application |
-| `Ctrl+C` | Force quit |
+| `r` | Reload current file |
+| `?` | Show help and key bindings |
+
+### Custom Actions (Example)
+Use `hiliner --keymap` to see your complete keymap including custom actions.
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `y` | Copy Selected Text | clipboard.json |
+| `p` | Copy File Path | clipboard.json |
+| `e` | Open in VS Code | development.json |
+| `h` | JavaScript Hello | javascript-test.json |
+
+**Note:** Custom action keys depend on your configuration files in the `actions/` directory.
 
 ## Multi-Selection Feature
 
@@ -107,14 +119,264 @@ The multi-selection feature allows you to highlight and track multiple lines whi
 - Debugging: Track multiple error locations or relevant code sections
 - Reference: Mark key lines while navigating large files
 
+## Custom Action System
+
+Hiliner supports a powerful custom action system that allows you to create personalized commands and scripts to enhance your file viewing experience.
+
+### Quick Start
+
+1. **View Available Actions**: See all built-in and custom key bindings
+   ```bash
+   hiliner --keymap
+   ```
+
+2. **Create Action Directory**: Set up your custom actions
+   ```bash
+   mkdir actions
+   ```
+
+3. **Add Custom Actions**: Create JSON configuration files
+   ```json
+   {
+     "$schema": "./src/schemas/actionConfig.schema.json",
+     "version": "1.0.0",
+     "actions": [
+       {
+         "id": "copy-path",
+         "name": "Copy File Path",
+         "description": "Copy current file path to clipboard",
+         "key": "p",
+         "script": "echo \"$FILE_PATH\" | pbcopy && echo \"Copied: $FILE_PATH\""
+       }
+     ]
+   }
+   ```
+
+4. **Use Your Actions**: Press your custom key bindings in interactive mode
+   ```bash
+   hiliner file.js  # Then press 'p' to copy file path
+   ```
+
+### Configuration Structure
+
+**Directory Layout:**
+```
+your-project/
+├── actions/           # Auto-loaded custom actions
+│   ├── clipboard.json
+│   ├── development.json
+│   └── analysis.json
+└── scripts/           # External JavaScript files
+    └── javascript/
+        ├── analyze.js
+        └── transform.js
+```
+
+**JSON Configuration Format:**
+```json
+{
+  "$schema": "./src/schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "unique-action-id",
+      "name": "Display Name",
+      "description": "What this action does",
+      "key": "x",
+      "script": "command to execute",
+      "when": {
+        "hasSelection": true
+      }
+    }
+  ]
+}
+```
+
+### Action Types
+
+**1. Shell Commands:**
+```json
+{
+  "id": "open-editor",
+  "key": "e",
+  "script": "code \"$FILE_PATH\""
+}
+```
+
+**2. JavaScript Scripts:**
+```json
+{
+  "id": "hello-js",
+  "key": "h",
+  "script": "hiliner.updateStatus('Hello from JavaScript!');"
+}
+```
+
+**3. External JavaScript Files:**
+```json
+{
+  "id": "complex-analysis",
+  "key": "a",
+  "script": "scripts/javascript/analyze.js"
+}
+```
+
+### Environment Variables
+
+Your scripts have access to these environment variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `$SELECTED_TEXT` | Content of selected lines | "line1\nline2\nline3" |
+| `$FILE_PATH` | Absolute path to current file | "/Users/name/project/file.js" |
+| `$LINE_START` | First line number in selection | "5" |
+| `$LINE_END` | Last line number in selection | "10" |
+| `$LANGUAGE` | Detected programming language | "javascript" |
+| `$SELECTION_COUNT` | Number of selected lines | "6" |
+| `$TOTAL_LINES` | Total lines in file | "150" |
+| `$CURRENT_LINE` | Current cursor position | "25" |
+
+### JavaScript API
+
+For JavaScript scripts, use the `hiliner` global object:
+
+```javascript
+// Update status bar
+hiliner.updateStatus('Processing complete!');
+
+// Get file information
+const info = hiliner.getFileInfo();
+console.log(`File: ${info.path} (${info.totalLines} lines)`);
+
+// Get selection information  
+const selection = hiliner.getSelectionInfo();
+hiliner.updateStatus(`Selected ${selection.selectionCount} lines`);
+
+// Clear status bar
+hiliner.clearStatus();
+```
+
+### Example Configurations
+
+**Clipboard Operations (`actions/clipboard.json`):**
+```json
+{
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "copy-selected",
+      "name": "Copy Selected Text",
+      "key": "y",
+      "script": "echo \"$SELECTED_TEXT\" | pbcopy",
+      "when": { "hasSelection": true }
+    },
+    {
+      "id": "copy-path",
+      "name": "Copy File Path",
+      "key": "p",
+      "script": "echo \"$FILE_PATH\" | pbcopy"
+    }
+  ]
+}
+```
+
+**Development Tools (`actions/development.json`):**
+```json
+{
+  "version": "1.0.0", 
+  "actions": [
+    {
+      "id": "open-vscode",
+      "name": "Open in VS Code",
+      "key": "e",
+      "script": "code \"$FILE_PATH\""
+    },
+    {
+      "id": "run-tests",
+      "name": "Run Tests",
+      "key": "t",
+      "script": "npm test"
+    }
+  ]
+}
+```
+
+**JavaScript Analysis (`actions/analysis.json`):**
+```json
+{
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "file-stats",
+      "name": "File Statistics",
+      "key": "s",
+      "script": "scripts/javascript/file-stats.js"
+    }
+  ]
+}
+```
+
+**External JavaScript Example (`scripts/javascript/file-stats.js`):**
+```javascript
+const fs = require('fs');
+const fileInfo = hiliner.getFileInfo();
+
+try {
+  const content = fs.readFileSync(fileInfo.path, 'utf-8');
+  const lines = content.split('\n');
+  
+  const stats = {
+    totalLines: lines.length,
+    nonEmpty: lines.filter(l => l.trim()).length,
+    comments: lines.filter(l => l.trim().startsWith('//')).length
+  };
+  
+  hiliner.updateStatus(
+    `📊 ${stats.nonEmpty}/${stats.totalLines} lines, ${stats.comments} comments`
+  );
+} catch (error) {
+  hiliner.updateStatus(`❌ Error: ${error.message}`);
+}
+```
+
+### Conditional Actions
+
+Use the `when` clause to control when actions are available:
+
+```json
+{
+  "id": "copy-selection",
+  "key": "c",
+  "script": "echo \"$SELECTED_TEXT\" | pbcopy",
+  "when": {
+    "hasSelection": true
+  }
+}
+```
+
+### Usage Examples
+
+```bash
+# View complete keymap including your custom actions
+hiliner --keymap
+
+# Use custom config file
+hiliner --config my-actions.json file.txt
+
+# Debug mode to see action loading
+hiliner --debug file.txt
+```
+
 ## Command Line Options
 
 ### Global Options
 ```
 -h, --help             Show help message
 -v, --version          Show version information
---static               Force static mode (disable interactive)
+-k, --keymap           Show complete keymap (built-in + custom actions)
+-c, --config <path>    Path to custom action configuration file
 -t, --theme <name>     Set syntax highlighting theme (default: dark-plus)
+--debug                Enable debug mode
 ```
 
 ### Static Mode Options
@@ -134,11 +396,18 @@ The multi-selection feature allows you to highlight and track multiple lines whi
 # Browse a configuration file
 hiliner config/app.json
 
-# View source code with multi-selection
+# View source code with custom actions
 hiliner src/components/App.tsx
 # Use Tab to select lines of interest
-# Use 'a' to select all visible functions
-# Use 'd' to clear selections when done
+# Use 'y' to copy selected text (if configured)
+# Use 'p' to copy file path (if configured)
+# Use 'e' to open in VS Code (if configured)
+
+# Use custom configuration
+hiliner --config my-actions.json src/app.js
+
+# View all available key bindings
+hiliner --keymap
 ```
 
 ### Static Mode Examples
@@ -169,11 +438,6 @@ hiliner api/server.py                   # Python highlighting
 hiliner --theme dracula src/main.rs     # Rust with Dracula theme
 hiliner -t monokai components/App.tsx   # TypeScript with Monokai theme
 hiliner --theme github-dark api/server.py # Python with GitHub Dark theme
-
-# Static mode preserves syntax colors in output
-hiliner main.go 1-20 > highlighted.txt         # Go syntax with line numbers
-hiliner script.sh 10+5 --theme one-dark-pro   # Shell script with theme and context
-hiliner config.json 1-30 --theme catppuccin-mocha # JSON with Catppuccin theme
 ```
 
 ### Theme Switching
@@ -195,7 +459,7 @@ hiliner --theme catppuccin-latte file.rs # Catppuccin Latte
 
 # Works in both interactive and static modes
 hiliner --theme nord file.txt           # Interactive with Nord theme
-hiliner file.txt 1-10 --theme solarized-dark # Static with Solarized Dark
+hiliner --theme solarized-dark # Static with Solarized Dark
 ```
 
 **Theme Requirements**:
@@ -304,6 +568,26 @@ npm run build && node bin/hiliner.js path/to/file.txt
 MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
+
+### v0.2.0 (Current)
+- **🚀 Custom Action System**: Powerful scripting framework for personalized workflows
+  - JSON-based action configuration with automatic loading from `actions/` directory
+  - Support for shell commands, inline JavaScript, and external JavaScript files
+  - 8 environment variables (`$SELECTED_TEXT`, `$FILE_PATH`, etc.) for context-aware scripting
+  - JavaScript API (`hiliner.updateStatus()`, `hiliner.getFileInfo()`, etc.) for UI integration
+  - Conditional actions with `when` clauses (e.g., `hasSelection: true`)
+  - Schema validation and key binding conflict detection
+- **🗺️ Enhanced Help System**: Complete keymap visualization
+  - `--keymap` command line option to display all available key bindings
+  - Categorized display showing built-in and custom actions with source files
+  - Improved formatting with proper alignment and arrow symbols (↑↓)
+- **⚡ Performance Improvements**: Streamlined key bindings and UI optimizations
+  - Removed redundant PageUp/PageDown alternative key bindings
+  - Optimized action execution pipeline with operation IDs to prevent race conditions
+- **🔧 Developer Experience**: Enhanced configuration and debugging capabilities
+  - `--config` option for custom action configuration files
+  - `--debug` mode for action system troubleshooting
+  - External script file support with automatic API injection
 
 ### v0.1.0
 - Initial release with interactive and static modes

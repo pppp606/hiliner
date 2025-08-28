@@ -1,0 +1,27 @@
+{
+  "$schema": "../src/schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "js-hello",
+      "name": "JavaScript Hello",
+      "description": "Test JavaScript API with hiliner.updateStatus()",
+      "key": "h",
+      "script": "hiliner.updateStatus('Hello from JavaScript!');"
+    },
+    {
+      "id": "js-file-info",
+      "name": "JavaScript File Info",
+      "description": "Display file info using JavaScript API",
+      "key": "l",
+      "script": "const info = hiliner.getFileInfo(); hiliner.updateStatus(`File: ${info.path} (${info.language}, ${info.totalLines} lines)`);"
+    },
+    {
+      "id": "js-selection-info",
+      "name": "JavaScript Selection Info", 
+      "description": "Display selection info using JavaScript API",
+      "key": "m",
+      "script": "const sel = hiliner.getSelectionInfo(); hiliner.updateStatus(`Selection: ${sel.selectionCount} lines, ${sel.selectedText.length} chars`);"
+    }
+  ]
+}

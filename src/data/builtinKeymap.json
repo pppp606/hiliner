@@ -1,0 +1,113 @@
+{
+  "$schema": "../schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "description": "Built-in keymap for Hiliner",
+  "actions": [
+    {
+      "id": "quit",
+      "name": "Quit Application",
+      "description": "Exit Hiliner",
+      "key": "q",
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "scrollUp",
+      "name": "Scroll Up",
+      "description": "Scroll up one line",
+      "key": "k",
+      "alternativeKeys": ["arrowup"],
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "scrollDown", 
+      "name": "Scroll Down",
+      "description": "Scroll down one line",
+      "key": "j",
+      "alternativeKeys": ["arrowdown"],
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "pageUp",
+      "name": "Page Up",
+      "description": "Scroll up one page",
+      "key": "b",
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "pageDown",
+      "name": "Page Down", 
+      "description": "Scroll down one page",
+      "key": "f",
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "goToStart",
+      "name": "Go to Start",
+      "description": "Go to the beginning of the file",
+      "key": "g",
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "goToEnd",
+      "name": "Go to End",
+      "description": "Go to the end of the file", 
+      "key": "G",
+      "category": "navigation",
+      "builtin": true
+    },
+    {
+      "id": "toggleSelection",
+      "name": "Toggle Line Selection",
+      "description": "Toggle selection for current line",
+      "key": "tab",
+      "category": "selection",
+      "builtin": true
+    },
+    {
+      "id": "rangeSelection",
+      "name": "Range Selection",
+      "description": "Select range from previous selection",
+      "key": "shift+tab",
+      "category": "selection",
+      "builtin": true
+    },
+    {
+      "id": "selectAll",
+      "name": "Select All Visible",
+      "description": "Select all lines in current viewport",
+      "key": "a",
+      "category": "selection",
+      "builtin": true
+    },
+    {
+      "id": "clearSelection",
+      "name": "Clear Selection",
+      "description": "Clear all selections",
+      "key": "c",
+      "category": "selection", 
+      "builtin": true
+    },
+    {
+      "id": "showHelp",
+      "name": "Show Help",
+      "description": "Show help and key bindings",
+      "key": "?",
+      "category": "help",
+      "builtin": true
+    },
+    {
+      "id": "reload",
+      "name": "Reload File",
+      "description": "Reload the current file",
+      "key": "r",
+      "category": "file",
+      "builtin": true
+    }
+  ]
+}
