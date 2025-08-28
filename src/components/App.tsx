@@ -4,9 +4,13 @@ import { useFileLoader } from '../hooks/useFileLoader.js';
 import { useSelection } from '../hooks/useSelection.js';
 import { FileViewer } from './FileViewer.js';
 import { StatusBar } from './StatusBar.js';
-import type { AppProps } from '../types.js';
+import type { AppProps, FileData, SelectionState } from '../types.js';
+import { createActionRegistry, ActionRegistry } from '../utils/actionRegistry.js';
+import { buildActionContext, type ActionContext } from '../utils/actionContext.js';
+import { ActionExecutor, createBuiltinHandler } from '../utils/actionExecutor.js';
+import type { ActionExecutionContext, ActionExecutionResult } from '../types/actionConfig.js';
 
-export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactElement {
+export function App({ filePath, theme = 'dark-plus', configPath }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const terminalHeight = Math.max(10, (stdout?.rows || 24) - 1); // -1 to prevent flickering in iTerm2 when content exceeds screen height
@@ -14,7 +18,7 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
   
   // File loading state
   const { loading, error, content, metadata, loadFile } = useFileLoader({
-    autoLoad: false, // Disable autoLoad to avoid conflicts
+    autoLoad: true, // Enable autoLoad
     initialFilePath: filePath,
   });
 
@@ -37,29 +41,299 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
   // Throttling for rapid key presses
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Track if file has been loaded to prevent duplicate calls
-  const [hasLoadedFile, setHasLoadedFile] = useState(false);
 
-  // Load file when filePath changes
-  useEffect(() => {
-    if (filePath && !hasLoadedFile) {
-      setHasLoadedFile(true);
-      loadFile(filePath);
-    }
-  }, [filePath, loadFile, hasLoadedFile]);
+  // Action System State
+  const [actionRegistry, setActionRegistry] = useState<ActionRegistry | null>(null);
+  const [actionExecutor, setActionExecutor] = useState<ActionExecutor | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [statusMessageType, setStatusMessageType] = useState<'success' | 'warning' | 'error' | undefined>(undefined);
+
+  // Calculate viewport height for scrolling logic
+  const viewportHeight = Math.max(10, terminalHeight - 1);  // -1 for status bar (height already reduced for iTerm2 compatibility)
+
 
   // Clear selections when file content changes
   useEffect(() => {
     clearSelection();
   }, [content, clearSelection]);
 
+  // Initialize Action System
+  useEffect(() => {
+    const initializeActionSystem = async () => {
+      try {
+        // Create action registry
+        const registry = await createActionRegistry(configPath); // If configPath is undefined, will auto-load from actions directory
+        setActionRegistry(registry);
+        
+        // Make registry available to JavaScript actions
+        (global as any).__hiliner_registry = registry;
 
-  // Calculate viewport height for scrolling logic
-  const viewportHeight = Math.max(10, terminalHeight - 1);  // -1 for status bar (height already reduced for iTerm2 compatibility)
+        // Create builtin action handler
+        const builtinHandler = createBuiltinHandler({
+          quit: () => {
+            exit();
+            return { success: true, message: 'Exiting application' };
+          },
+          scrollUp: () => {
+            if (content && content.length > 0) {
+              const newPos = Math.max(0, cursorPosition - 1);
+              setCursorPosition(newPos);
+              if (newPos < scrollPosition) {
+                setScrollPosition(newPos);
+              }
+            }
+            return { success: true };
+          },
+          scrollDown: () => {
+            if (content && content.length > 0) {
+              const maxLine = Math.max(0, content.length - 1);
+              const newPos = Math.min(maxLine, cursorPosition + 1);
+              setCursorPosition(newPos);
+              if (newPos >= scrollPosition + viewportHeight) {
+                setScrollPosition(newPos - viewportHeight + 1);
+              }
+            }
+            return { success: true };
+          },
+          pageUp: () => {
+            if (content && content.length > 0) {
+              const pageSize = Math.max(1, viewportHeight - 1);
+              const newPos = Math.max(0, cursorPosition - pageSize);
+              setCursorPosition(newPos);
+              if (newPos < scrollPosition) {
+                setScrollPosition(newPos);
+              }
+            }
+            return { success: true };
+          },
+          pageDown: () => {
+            if (content && content.length > 0) {
+              const maxLine = Math.max(0, content.length - 1);
+              const pageSize = Math.max(1, viewportHeight - 1);
+              const newPos = Math.min(maxLine, cursorPosition + pageSize);
+              setCursorPosition(newPos);
+              if (newPos >= scrollPosition + viewportHeight) {
+                setScrollPosition(newPos - viewportHeight + 1);
+              }
+            }
+            return { success: true };
+          },
+          goToStart: () => {
+            setCursorPosition(0);
+            setScrollPosition(0);
+            return { success: true };
+          },
+          goToEnd: () => {
+            if (content && content.length > 0) {
+              const maxLine = Math.max(0, content.length - 1);
+              setCursorPosition(maxLine);
+              setScrollPosition(Math.max(0, maxLine - viewportHeight + 1));
+            }
+            return { success: true };
+          },
+          toggleSelection: () => {
+            if (content && content.length > 0) {
+              toggleSelection(cursorPosition + 1);
+            }
+            return { success: true };
+          },
+          selectAll: () => {
+            if (content && content.length > 0) {
+              const startLine = Math.max(1, scrollPosition + 1);
+              const endLine = Math.min(content.length, scrollPosition + viewportHeight);
+              selectAll(startLine, endLine);
+            }
+            return { success: true };
+          },
+          clearSelection: () => {
+            clearSelection();
+            setRangeSelectionStart(null);
+            return { success: true };
+          },
+          showHelp: () => {
+            setStatusMessage('Help: q=quit, j/k=scroll, space=select, a=select all, c=clear, r=reload');
+            setStatusMessageType(undefined);
+            return { success: true, message: 'Help displayed' };
+          },
+          reload: () => {
+            if (filePath) {
+              clearSelection();
+              setScrollPosition(0);
+              setCursorPosition(0);
+              setStatusMessage('Reloading file...');
+              setStatusMessageType(undefined);
+              loadFile(filePath);
+            }
+            return { success: true, message: 'File reloaded' };
+          }
+        });
+
+        // Create action executor with Hiliner API provider
+        const executor = new ActionExecutor({
+          builtinHandler,
+          defaultTimeout: 10000,
+          hilinerAPIProvider: () => ({
+            updateStatus: (message: string, options?: any) => {
+              setStatusMessage(message);
+              setStatusMessageType(options?.type || 'info');
+            },
+            clearStatus: () => {
+              setStatusMessage('');
+              setStatusMessageType(undefined);
+            },
+            getFileInfo: () => ({
+              path: filePath || 'unknown',
+              language: metadata?.detectedLanguage || 'unknown',
+              totalLines: content?.length || 0,
+              currentLine: cursorPosition + 1
+            }),
+            getSelectionInfo: () => ({
+              selectedLines: Array.from(selectedLines),
+              selectionCount,
+              selectedText: Array.from(selectedLines)
+                .sort((a, b) => a - b)
+                .map(line => content?.[line - 1] || '')
+                .join('\n')
+            })
+          })
+        });
+        setActionExecutor(executor);
+
+      } catch (error) {
+        console.error('Failed to initialize Action System:', error);
+        setStatusMessage('Failed to initialize Action System');
+        setStatusMessageType('error');
+      }
+    };
+
+    initializeActionSystem();
+  }, [exit, content, cursorPosition, scrollPosition, viewportHeight, toggleSelection, selectAll, clearSelection, filePath, loadFile, configPath]);
   
-  // Handle keyboard input with throttling
-  useInput((input: string, key: Key) => {
-    // Handle quit commands immediately
+  // Helper function to convert Key object to string for action matching
+  const getKeyString = useCallback((input: string, key: Key): string => {
+    if (key.ctrl && input) {
+      return `ctrl+${input}`;
+    }
+    if (key.shift && key.tab) {
+      return 'shift+tab';
+    }
+    if (key.upArrow) return 'arrowup';
+    if (key.downArrow) return 'arrowdown';
+    if (key.leftArrow) return 'arrowleft';
+    if (key.rightArrow) return 'arrowright';
+    if (key.pageUp) return 'pageup';
+    if (key.pageDown) return 'pagedown';
+    if (key.tab) return 'tab';
+    if (key.escape) return 'escape';
+    if (key.return) return 'return';
+    if (input === ' ') return 'space';
+    return input;
+  }, []);
+
+  // Helper function to build action execution context
+  const buildExecutionContext = useCallback((): ActionExecutionContext | null => {
+    if (!filePath || !content) return null;
+
+    return {
+      currentFile: filePath,
+      currentLine: cursorPosition + 1,
+      currentColumn: columnPosition,
+      selectedLines: Array.from(selectedLines),
+      selectedText: Array.from(selectedLines)
+        .sort((a, b) => a - b)
+        .map(line => content[line - 1] || '')
+        .join('\n'),
+      fileName: filePath.split('/').pop() || '',
+      fileDir: filePath.substring(0, filePath.lastIndexOf('/')),
+      totalLines: content.length,
+      viewportStart: scrollPosition + 1,
+      viewportEnd: Math.min(content.length, scrollPosition + viewportHeight),
+      theme: theme,
+      hasSelection: selectionCount > 0,
+      fileMetadata: metadata ? {
+        size: metadata.size,
+        encoding: metadata.encoding,
+        isBinary: metadata.isBinary,
+        detectedLanguage: metadata.detectedLanguage
+      } : undefined
+    };
+  }, [filePath, content, cursorPosition, columnPosition, selectedLines, scrollPosition, viewportHeight, theme, selectionCount, metadata]);
+
+  // Handle keyboard input with Action System integration
+  useInput(async (input: string, key: Key) => {
+    // Clear previous status message after a delay
+    if (statusMessage) {
+      setTimeout(() => {
+        setStatusMessage('');
+        setStatusMessageType(undefined);
+      }, 3000);
+    }
+
+    // Try to match action first if Action System is initialized
+    if (actionRegistry && actionExecutor && content && content.length > 0) {
+      const keyString = getKeyString(input, key);
+      console.error('DEBUG: Key pressed:', keyString);
+      const action = actionRegistry.getActionByKey(keyString);
+      console.error('DEBUG: Action found:', action?.id);
+      
+      if (action) {
+        try {
+          const executionContext = buildExecutionContext();
+          if (executionContext) {
+            const selectionState: SelectionState = {
+              selectedLines,
+              selectionCount,
+              lastSelectedLine: Array.from(selectedLines).sort((a, b) => b - a)[0]
+            };
+
+            console.error('DEBUG: Selection state:', { 
+              selectionCount, 
+              hasSelection: selectionCount > 0,
+              selectedLinesSize: selectedLines.size,
+              selectedLinesArray: Array.from(selectedLines)
+            });
+            console.error('DEBUG: Action conditions:', action.when);
+
+            const fileData: FileData = {
+              content: content.join('\n'),
+              lines: content,
+              totalLines: content.length,
+              filePath: filePath!,
+              metadata: metadata || undefined
+            };
+
+            const actionContext = buildActionContext(selectionState, fileData, cursorPosition + 1);
+            const result = await actionExecutor.executeAction(action, executionContext, actionContext);
+            
+            // Display actual command output if available, otherwise show message
+            if (result.output) {
+              // Show the actual output from the command
+              const outputLines = result.output.split('\n');
+              const displayOutput = outputLines.length > 1 
+                ? outputLines[0] + (outputLines.length > 2 ? '...' : ' ' + outputLines[1] || '')
+                : result.output;
+              setStatusMessage(displayOutput);
+              setStatusMessageType(result.messageType === 'info' ? undefined : result.messageType);
+            } else if (result.message) {
+              setStatusMessage(result.message);
+              setStatusMessageType(result.messageType === 'info' ? undefined : result.messageType);
+            }
+            
+            // If action was successful and handled, return early
+            if (result.success) {
+              return;
+            }
+          }
+        } catch (error) {
+          setStatusMessage(`Action failed: ${error instanceof Error ? error.message : String(error)}`);
+          setStatusMessageType('error');
+          return;
+        }
+      }
+    }
+
+    // Fall back to original keyboard handling for compatibility
+    // Handle quit commands immediately (fallback for when Action System not ready)
     if (input === 'q' || key.ctrl && input === 'c') {
       exit();
       return;
@@ -85,8 +359,10 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
       
       // Tab: Toggle selection of current line (or start range selection)
       if (key.tab) {
+        console.error('DEBUG: Tab pressed - toggling selection for line:', cursorPosition + 1);
         toggleSelection(cursorPosition + 1); // Convert 0-based to 1-based line number
         setRangeSelectionStart(cursorPosition + 1); // Mark as potential range start
+        console.error('DEBUG: After toggle - selectedLines size:', selectedLines.size, 'selectionCount:', selectionCount);
         return;
       }
 
@@ -124,8 +400,8 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
         newCursorPos = Math.max(0, cursorPosition - 1);
       } else if (key.downArrow) {
         newCursorPos = Math.min(maxLine, cursorPosition + 1);
-      } else if (input === ' ' || key.pageDown) {
-        // Page down
+      } else if (key.pageDown) {
+        // Page down (pageDown key only)
         const pageSize = Math.max(1, viewportHeight - 1);
         newCursorPos = Math.min(maxLine, cursorPosition + pageSize);
       } else if (input === 'b' || key.pageUp) {
@@ -182,7 +458,10 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
         <Box flexGrow={1} justifyContent="center" alignItems="center">
           No file provided
         </Box>
-        <StatusBar />
+        <StatusBar 
+          message={statusMessage}
+          messageType={statusMessageType}
+        />
       </Box>
     );
   }
@@ -194,7 +473,12 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
         <Box flexGrow={1} justifyContent="center" alignItems="center">
           <Text>Loading...</Text>
         </Box>
-        <StatusBar fileName={filePath.split('/').pop() || ''} isLoading={true} />
+        <StatusBar 
+          fileName={filePath.split('/').pop() || ''} 
+          isLoading={true} 
+          message={statusMessage}
+          messageType={statusMessageType}
+        />
       </Box>
     );
   }
@@ -215,13 +499,15 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
           fileName={filePath.split('/').pop() || ''} 
           isError={true} 
           errorMessage={errorMessage}
+          message={statusMessage}
+          messageType={statusMessageType}
         />
       </Box>
     );
   }
 
-  // Empty file
-  if (content.length === 0) {
+  // Empty file (but not while loading)
+  if (!loading && content.length === 0) {
     return (
       <Box flexDirection="column" height={terminalHeight}>
         <Box flexGrow={1} justifyContent="center" alignItems="center">
@@ -229,6 +515,8 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
         </Box>
         <StatusBar 
           fileName={filePath.split('/').pop() || ''} 
+          message={statusMessage}
+          messageType={statusMessageType}
         />
       </Box>
     );
@@ -248,6 +536,8 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
         <StatusBar 
           fileName={filePath.split('/').pop() || ''} 
           isBinary={true}
+          message={statusMessage}
+          messageType={statusMessageType}
         />
       </Box>
     );
@@ -284,6 +574,8 @@ export function App({ filePath, theme = 'dark-plus' }: AppProps): React.ReactEle
         syntaxTheme={theme}
         encoding={metadata?.encoding}
         theme={theme}
+        message={statusMessage}
+        messageType={statusMessageType}
       />
     </Box>
   );

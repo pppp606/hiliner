@@ -1,0 +1,40 @@
+{
+  "$schema": "./src/schemas/actionConfig.schema.json",
+  "version": "1.0.0",
+  "actions": [
+    {
+      "id": "copy-selected-text",
+      "name": "Copy Selected Text",
+      "description": "Copy selected lines to clipboard",
+      "key": "y",
+      "script": "echo \"$SELECTED_TEXT\" | pbcopy && echo \"Copied ${SELECTION_COUNT} lines to clipboard\"",
+      "when": {
+        "hasSelection": true
+      }
+    },
+    {
+      "id": "copy-file-path",
+      "name": "Copy File Path",
+      "description": "Copy current file path to clipboard",
+      "key": "p",
+      "script": "echo \"$FILE_PATH\" | pbcopy && echo \"Copied: $FILE_PATH\""
+    },
+    {
+      "id": "copy-with-line-numbers",
+      "name": "Copy with Line Numbers",
+      "description": "Copy selected text with line numbers",
+      "key": "n",
+      "script": "echo \"File: $FILE_PATH (Lines $LINE_START-$LINE_END)\" | pbcopy && echo \"$SELECTED_TEXT\" | pbcopy && echo \"Copied with metadata\"",
+      "when": {
+        "hasSelection": true
+      }
+    },
+    {
+      "id": "copy-all-info",
+      "name": "Copy All Information",
+      "description": "Copy all context information",
+      "key": "i",
+      "script": "echo \"File: $FILE_PATH\\nLanguage: $LANGUAGE\\nLines: $LINE_START-$LINE_END ($SELECTION_COUNT selected)\\nTotal: $TOTAL_LINES lines\\nCurrent: Line $CURRENT_LINE\\n\\nSelected Text:\\n$SELECTED_TEXT\" | pbcopy && echo \"Copied complete information\""
+    }
+  ]
+}

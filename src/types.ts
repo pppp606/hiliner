@@ -14,10 +14,14 @@ export interface CLIArgs {
   file?: string;
   /** Syntax highlighting theme name (default: 'dark-plus') */
   theme?: string;
+  /** Path to custom configuration file */
+  config?: string;
   /** Show help */
   help?: boolean;
   /** Show version */
   version?: boolean;
+  /** Show complete keymap */
+  keymap?: boolean;
   /** Enable debug mode */
   debug?: boolean;
 }
@@ -171,6 +175,8 @@ export interface AppProps {
   filePath?: string;
   /** Syntax highlighting theme name (default: 'dark-plus') */
   theme?: string;
+  /** Path to custom action configuration file */
+  configPath?: string;
 }
 
 /**
@@ -332,3 +338,18 @@ export interface StatusBarProps {
   /** Current syntax highlighting theme */
   syntaxTheme?: string;
 }
+
+// Re-export action configuration types for convenience
+export type {
+  ActionConfig,
+  ActionConfigMetadata,
+  ActionConfigEnvironment,
+  ActionDefinition,
+  ActionWhenConditions,
+  CommandVariables,
+  ComplexCommand,
+  ActionExecutionContext,
+  ActionExecutionResult,
+  ActionHandler,
+  KeyBindingValidation
+} from './types/actionConfig.js';

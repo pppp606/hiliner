@@ -16,6 +16,8 @@ function StatusBarComponent({
   syntaxTheme,
   encoding,
   theme,
+  message,
+  messageType,
 }: StatusBarProps): React.ReactElement {
 
   // Build position information
@@ -38,6 +40,14 @@ function StatusBarComponent({
   // Build status message
   const buildStatus = () => {
     const statusParts = [];
+    
+    // Priority message from Action System
+    if (message) {
+      const messagePrefix = messageType === 'error' ? 'Error: ' : 
+                           messageType === 'warning' ? 'Warning: ' : 
+                           messageType === 'success' ? 'Success: ' : '';
+      return `${messagePrefix}${message}`;
+    }
     
     if (isLoading) {
       return 'Loading...';
